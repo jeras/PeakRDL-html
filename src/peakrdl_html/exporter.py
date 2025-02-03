@@ -146,9 +146,6 @@ class DocTextExporter:
 
         # Make sure output directory structure exists
         os.makedirs(self.output_dir, exist_ok=True)
-        os.makedirs(os.path.join(self.output_dir, "content"), exist_ok=True)
-        os.makedirs(os.path.join(self.output_dir, "search"), exist_ok=True)
-        os.makedirs(os.path.join(self.output_dir, "data"), exist_ok=True)
 
         # Traverse trees
         for node in nodes:
@@ -162,12 +159,6 @@ class DocTextExporter:
 
         # Write out RALData and other data
         self.write_ral_data()
-
-        # Write main index.html
-        self.write_index_page()
-
-        # Write search index
-        self.indexer.write_index_js(os.path.join(output_dir, "search"))
 
 
     def visit_addressable_node(self, node: Node, parent_id: 'Optional[int]'=None) -> int:
