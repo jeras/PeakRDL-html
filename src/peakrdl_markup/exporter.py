@@ -19,7 +19,6 @@ from systemrdl import rdltypes
 from systemrdl.source_ref import FileSourceRef, DetailedFileSourceRef
 
 from .stringify import stringify_rdl_value
-from .search_indexer import SearchIndexer
 from .__about__ import __version__
 
 if TYPE_CHECKING:
@@ -101,8 +100,6 @@ class MarkupExporter:
 
         self.gmtu = GitMeTheURL(gmtu_translators)
 
-        self.indexer = None # type: SearchIndexer
-
 
     def export(self, nodes: 'Union[Node, List[Node]]', output_dir: str, **kwargs: 'Dict[str, Any]') -> None:
         """
@@ -148,7 +145,9 @@ class MarkupExporter:
                     "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
                     node.inst.property_src_ref.get('bridge', node.inst.inst_src_ref)
                 )
-            context = self.visit_addressable_node(node)
+            context = {'nodes': [self.visit_addressable_node(node)]}
+
+        #breakpoint()
 
 #        view_source_url, view_source_filename= self.get_view_source_info(node)
 #        context = {
@@ -187,7 +186,7 @@ class MarkupExporter:
         context = {
             'instance'  : node.inst.inst_name,
             'name'      : node.get_property('name'),
-            'offset'    : '{:08X}'.format(node.inst.addr_offset),
+            'offset'    : node.inst.addr_offset,
             'size'      : node.size,
         }
         if node.inst.is_array:
@@ -235,7 +234,7 @@ class MarkupExporter:
             children.append(self.visit_addressable_node(child))
 
         # Generate page for this node
-        context['children'] = children
+        context['nodes'] = children
 
         return context
 

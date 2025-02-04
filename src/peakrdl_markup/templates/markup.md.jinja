@@ -1,18 +1,38 @@
-# Address map
+{% for node in nodes recursive %}
 
-Node instance: {{ instance }}
+{% if node.type == "addrmap" %}
+{{ '#' * loop.depth }} Address map: {{ node.name }}
 
+- Block type: {{ node.type }}
+- Instance name: `{{ node.instance }}`
+- Address offset: `{{ "0x{:08X}".format(node.offset) }}`
 
 | address | type | instance | name |
 |---------|------|----------|------|
-{% for child in children -%}
-| `{{ child.offset }}` | {{ child.type }} | `{{ child.instance }}` | {{ child.name }} |
+{% for row in node.nodes -%}
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
-{% for child in children -%}
-## {{ child.name }}
+{{ loop(node.nodes) }}
 
-- Block type: {{ child.type }}
-- Instance name: `{{ child.instance }}`
-- Address offset: `{{ child.offset }}`
+{% elif node.type == "regfile" %}
+{{ '#' * loop.depth }} Register file: {{ node.name }}
+
+| address | type | instance | name |
+|---------|------|----------|------|
+{% for row in node.nodes -%}
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.instance }}` | {{ row.name }} |
+{% endfor %}
+
+{% elif node.type == "reg" %}
+{{ '#' * loop.depth }} Register: {{ node.name }}
+
+| address | type | instance | name |
+|---------|------|----------|------|
+{% for row in node.nodes -%}
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.instance }}` | {{ row.name }} |
+{% endfor %}
+
+{% endif %}
+
 {% endfor %}
