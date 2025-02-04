@@ -1,0 +1,18 @@
+# Address map
+
+Node instance: {{ instance }}
+
+
+| address | type | instance | name |
+|---------|------|----------|------|
+{% for child in children -%}
+| `{{ child.offset }}` | {{ child.type }} | `{{ child.instance }}` | {{ child.name }} |
+{% endfor %}
+
+{% for child in children -%}
+## {{ child.name }}
+
+- Block type: {{ child.type }}
+- Instance name: `{{ child.instance }}`
+- Address offset: `{{ child.offset }}`
+{% endfor %}

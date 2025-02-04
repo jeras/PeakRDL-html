@@ -26,10 +26,10 @@ if TYPE_CHECKING:
     from typing import Any, Optional, Tuple, List, Dict, Union
     from systemrdl.source_ref import SourceRefBase
 
-class DocTextExporter:
+class MarkupExporter:
     def __init__(self, **kwargs: 'Any') -> None:
         """
-        Constructor for the DocText exporter class
+        Constructor for the Markup exporter class
 
         Parameters
         ----------
@@ -53,9 +53,6 @@ class DocTextExporter:
             properties in your documentation.
         """
         self.output_dir = "" # type: str
-        self.RALData = [] # type: List[Dict[str, Any]]
-        self.RootNodeIds = [] # type: List[int]
-        self.current_id = -1
         self.skip_not_present = True
         self.current_top_node = None # type: AddrmapNode
 
@@ -139,12 +136,8 @@ class DocTextExporter:
         if kwargs:
             raise TypeError("got an unexpected keyword argument '%s'" % list(kwargs.keys())[0])
 
-        self.output_dir = output_dir
-        self.RALData = []
-        self.current_id = -1
-        self.indexer = SearchIndexer()
-
         # Make sure output directory structure exists
+        self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Traverse trees
@@ -152,38 +145,64 @@ class DocTextExporter:
             self.current_top_node = node
             if node.get_property('bridge'):
                 node.env.msg.warning(
-                    "DocText generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
+                    "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
                     node.inst.property_src_ref.get('bridge', node.inst.inst_src_ref)
                 )
-            self.visit_addressable_node(node)
+            context = self.visit_addressable_node(node)
 
-        # Write out RALData and other data
-        self.write_ral_data()
+#        view_source_url, view_source_filename= self.get_view_source_info(node)
+#        context = {
+#            'node' : node,
+#            'children' : children,
+#            'has_description' : has_description,
+#            'friendly_access' : friendly_access,
+#            'has_enum_encoding' : has_enum_encoding,
+#            'get_enum_desc': self.get_enum_html_desc,
+#            'get_node_desc': self.get_node_html_desc,
+#            'get_child_addr_digits': self.get_child_addr_digits,
+#            'show_signals': self.show_signals,
+#            'has_extra_property_doc': self.has_extra_property_doc,
+#            'extra_properties': self.extra_properties,
+#            'stringify_rdl_value': stringify_rdl_value,
+#            'SignalNode' : SignalNode,
+#            'FieldNode': FieldNode,
+#            'AddressableNode': AddressableNode,
+#            'PropertyReference': rdltypes.PropertyReference,
+#            'reversed': reversed,
+#            'isinstance': isinstance,
+#            'list': list,
+#            'reg_fields_are_low_to_high': reg_fields_are_low_to_high,
+#            'skip_not_present': self.skip_not_present
+#        }
+#        context.update(self.user_context)
+
+        template = self.jj_env.get_template("markup.md.jinja")
+        stream = template.stream(context)
+        output_path = os.path.join(self.output_dir, "test.md")
+        stream.dump(output_path)
 
 
-    def visit_addressable_node(self, node: Node, parent_id: 'Optional[int]'=None) -> int:
-        self.current_id += 1
-        this_id = self.current_id
-        child_ids = [] # type: List[int]
+    def visit_addressable_node(self, node: Node) -> OrderedDict:
 
-        self.indexer.add_node(node, this_id)
-
-        ral_entry = {
-            'parent'    : parent_id,
-            'children'  : child_ids,
-            'name'      : node.inst.inst_name,
-            'offset'    : BigInt(node.inst.addr_offset),
-            'size'      : BigInt(node.size),
+        context = {
+            'instance'  : node.inst.inst_name,
+            'name'      : node.get_property('name'),
+            'offset'    : '{:08X}'.format(node.inst.addr_offset),
+            'size'      : node.size,
         }
         if node.inst.is_array:
-            ral_entry['dims'] = node.inst.array_dimensions
-            ral_entry['stride'] = BigInt(node.inst.array_stride)
-            ral_entry['idxs'] = [0] * len(node.inst.array_dimensions)
+            context['dims'] = node.inst.array_dimensions
+            context['stride'] = node.inst.array_stride
+            context['idxs'] = [0] * len(node.inst.array_dimensions)
 
-        if isinstance(node, RegNode):
-            ral_fields = []
+        if   isinstance(node, AddrmapNode):
+            context['type'] = "addrmap"
+        elif isinstance(node, RegfileNode):
+            context['type'] = "regfile"
+        elif isinstance(node, RegNode):
+            context['type'] = "reg"
+            context_fields = []
             for i, field in enumerate(node.fields(skip_not_present=self.skip_not_present)):
-                self.indexer.add_node(field, this_id, i)
 
                 field_reset = field.get_property("reset", default=0)
                 if isinstance(field_reset, Node):
@@ -191,117 +210,34 @@ class DocTextExporter:
                     # support this, so stuff a 0 in its place
                     field_reset = 0
 
-                ral_field = {
+                context_field = {
                     'name' : field.inst.inst_name,
                     'lsb'  : field.inst.lsb,
                     'msb'  : field.inst.msb,
-                    'reset': BigInt(field_reset),
+                    'reset': field_reset,
                     'disp' : 'H'
                 }
 
                 field_enum = field.get_property("encode")
                 if field_enum is not None:
-                    ral_field['encode'] = True
-                    ral_field['disp'] = 'E'
+                    context_field['encode'] = True
+                    context_field['disp'] = 'E'
 
-                ral_fields.append(ral_field)
+                context_fields.append(context_field)
 
-            ral_entry['fields'] = ral_fields
-
-        # Insert entry now to ensure proper position in list
-        self.RALData.append(ral_entry)
-
-        # Insert root nodes to list
-        if parent_id is None:
-            self.RootNodeIds.append(this_id)
+            context['fields'] = context_fields
 
         # Recurse to children
-        children = OrderedDict()
+        children = list()
         for child in node.children(skip_not_present=self.skip_not_present):
             if not isinstance(child, AddressableNode):
                 continue
-            child_id = self.visit_addressable_node(child, this_id)
-            child_ids.append(child_id)
-            children[child_id] = child
+            children.append(self.visit_addressable_node(child))
 
         # Generate page for this node
-        self.write_page(this_id, node, children)
+        context['children'] = children
 
-        return this_id
-
-
-    def write_ral_data(self) -> None:
-        N_RAL_NODES_PER_FILE = 16384
-        n_files = math.ceil(len(self.RALData)/N_RAL_NODES_PER_FILE)
-
-        # Write RALData files
-        for file_idx in range(n_files):
-            start = file_idx * N_RAL_NODES_PER_FILE
-            end = min((file_idx + 1) * N_RAL_NODES_PER_FILE, len(self.RALData))
-            path = os.path.join(self.output_dir, "data/ral-data-%d.json" % file_idx)
-            with open(path, 'w', encoding='utf-8') as f:
-                f.write(PeakRDLJSEncoder(separators=(',', ':')).encode(self.RALData[start:end]))
-
-
-    _template_map = {
-        AddrmapNode : "addrmap.html",
-        RegfileNode : "regfile.html",
-        MemNode     : "mem.html",
-        RegNode     : "reg.html",
-    }
-
-    def write_page(self, this_id: int, node: Node, children: 'Dict[int, Node]') -> None:
-
-        view_source_url, view_source_filename= self.get_view_source_info(node)
-        context = {
-            'this_id': this_id,
-            'node' : node,
-            'children' : children,
-            'has_description' : has_description,
-            'friendly_access' : friendly_access,
-            'has_enum_encoding' : has_enum_encoding,
-            'get_enum_desc': self.get_enum_html_desc,
-            'get_node_desc': self.get_node_html_desc,
-            'get_child_addr_digits': self.get_child_addr_digits,
-            'show_signals': self.show_signals,
-            'has_extra_property_doc': self.has_extra_property_doc,
-            'extra_properties': self.extra_properties,
-            'stringify_rdl_value': stringify_rdl_value,
-            'SignalNode' : SignalNode,
-            'FieldNode': FieldNode,
-            'AddressableNode': AddressableNode,
-            'PropertyReference': rdltypes.PropertyReference,
-            'reversed': reversed,
-            'isinstance': isinstance,
-            'list': list,
-            'view_source_url': view_source_url,
-            'view_source_filename': view_source_filename,
-            'reg_fields_are_low_to_high': reg_fields_are_low_to_high,
-            'skip_not_present': self.skip_not_present
-        }
-        context.update(self.user_context)
-
-        uid = self.get_node_uid(node)
-
-        template = self.jj_env.get_template(self._template_map[type(node)])
-        stream = template.stream(context)
-        output_path = os.path.join(self.output_dir, "content", "%s.html" % uid)
-        stream.dump(output_path)
-
-
-    def write_index_page(self) -> None:
-        context = {
-            # propagate build timestamp to some URLs to force cache invalidation when rebuilt
-            'build_ts': int(time.time()),
-            'version': __version__,
-        }
-        context.update(self.user_context)
-
-        template = self.jj_env.get_template("index.html")
-        stream = template.stream(context)
-        output_path = os.path.join(self.output_dir, "index.html")
-        stream.dump(output_path)
-
+        return context
 
     def get_child_addr_digits(self, node: AddressableNode) -> int:
         return math.ceil(math.log2(node.size) / 4)
@@ -505,16 +441,3 @@ def copy_recursive(src: str, dst: str) -> None:
             copy_recursive(spath, dpath)
         else:
             shutil.copyfile(spath, dpath)
-
-
-class BigInt:
-    def __init__(self, v: int):
-        self.v = v
-
-class PeakRDLJSEncoder(json.JSONEncoder):
-    def default(self, o: 'Any') -> str: # pylint: disable=method-hidden
-        if isinstance(o, BigInt):
-            # store bigInt integers as hex string. JS will convert to bigInt objects post-load.
-            return "%x" % o.v
-        else:
-            return super().default(o)

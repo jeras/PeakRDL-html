@@ -1,0 +1,91 @@
+////////////////////////////////////////////////////////////////////////////////
+// UART controller registers
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+regfile uart #(
+    longint unsigned DATA_WIDTH = 32,
+    longint unsigned COUNTER_WIDTH = 4,
+    longint unsigned FIFO_DEEPTH = 2**COUNTER_WIDTH,
+    longint unsigned BAUDRATE_WIDTH = 16
+){
+    default regwidth = 32;
+    default accesswidth = 32;
+
+    name = "UART controller";
+    desc = "UART with independent TX/RX channels each with a FIFO of depth `FIFO_DEEPTH`";
+
+    ////////////////////////////////////////////////////////////////////////////
+    // TX channel
+    ////////////////////////////////////////////////////////////////////////////
+
+    reg {
+        name = "TX data";
+        desc = "TX FIFO data register, writing will increase the FIFO load, reading has no effect and returns undefined value.
+                Writing into a full FIFO will be silently ignored, SW should never write more than `size-status` data units (bytes).";
+        field {
+            sw = w; hw = r;
+        } data [DATA_WIDTH];
+    } tx_data @0x00;
+
+    reg {
+        name = "TX FIFO status";
+        desc = "TX FIFO load, the number of data units (bytes) stored in the FIFO.";
+        field {
+            sw = r; hw = w;
+        } status [COUNTER_WIDTH];
+    } tx_status @0x04;
+
+    reg {
+        name = "TX baudrate";
+        desc = "TX baudrate divider. The clock is divided by ratio `baudrate+1`.";
+        field {
+            sw = w; hw = r;
+        } baudrate [BAUDRATE_WIDTH] = 0;
+    } tx_baudrate @0x08;
+
+    reg {
+        name = "TX interrupt trigger level";
+        desc = "TX FIFO level at which a TX interrupt is triggered. Indicator FIFO is almost empty.";
+        field {
+            sw = w; hw = r;
+        } cnt [COUNTER_WIDTH];
+    } tx_irq_level @0x10;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // RX channel
+    ////////////////////////////////////////////////////////////////////////////
+
+    reg {
+        name = "RX data";
+        desc = "RX FIFO data register, reading will decrease the FIFO load, writing has no effect.
+                Reading from an empty FIFO will be silently ignored, SW should never read more than `status` data units (bytes).";
+        field {
+            sw = w; hw = r;
+        } data [DATA_WIDTH];
+    } rx_data @0x20;
+
+    reg {
+        name = "RX FIFO status";
+        desc = "RX FIFO load, the number of data units (bytes) stored in the FIFO.";
+        field {
+            sw = r; hw = w;
+        } status [COUNTER_WIDTH];
+    } rx_status @0x24;
+
+    reg {
+        name = "RX baudrate";
+        desc = "RX baudrate divider. The clock is divided by ratio `baudrate+1`.";
+        field {
+            sw = w; hw = r;
+        } baudrate [BAUDRATE_WIDTH] = 0;
+    } rx_baudrate @0x28;
+
+    reg {
+        name = "RX interrupt trigger level";
+        desc = "RX FIFO level at which a RX interrupt is triggered. Indicator FIFO is almost full.";
+        field {
+            sw = w; hw = r;
+        } cnt [COUNTER_WIDTH];
+    } rx_irq_level @0x30;
+};

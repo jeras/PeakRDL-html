@@ -1,0 +1,52 @@
+////////////////////////////////////////////////////////////////////////////////
+// generic peripheral registers
+////////////////////////////////////////////////////////////////////////////////
+
+reg configuration #(
+    longint unsigned WIDTH = 32
+){
+    name = "configuration";
+    desc = "Configuration register. SW has full R/W access, while HW can only read it.
+            The contents of a configuration register are quasi-static, they are set during initialization,
+            and left unchanged during operation.";
+    field {
+        sw = rw; hw = r;
+    } val [WIDTH-1:0] = 0;
+};
+
+reg control {
+    name = "control";
+    desc = "Control register. SW can write into the register, while reading will return an undefined value.
+            A write of `1` into the register will cause an event in the associated device.
+            A write of `0` will have no effect.
+            The `singlepulse` property is set to true, meaning the HW will see a single clock period pulse,
+            when SW performs a `1` write.";
+    field {
+        name = "start";
+        desc = "Start bit, write `1` to start peripheral FSM.";
+        sw = w; hw = r;
+        singlepulse = true;
+    } val [0:0] = 1'b0;
+};
+
+reg status {
+    name = "status";
+    desc = "Status register. Status fields are driven by HW and read by SW.
+            The status is often the state of a FSM inside the associated device,
+            most often showing the distinction between IDLE (`0`) and ACTIVE states (`1`).";
+    field {
+        name = "state";
+        desc = "State bit, read FSM state `0` for IDLE and `1` for ACTIVE.";
+        sw = r; hw = w;
+    } val [0:0];
+};
+
+regfile generic #(
+    longint unsigned WIDTH = 32
+){
+    name = "generic peripheral";
+    desc = "A generic peripheral containing generic sonfiguration/control/status registers.";
+    configuration #(.WIDTH (WIDTH)) conf;
+    control                         ctrl;
+    status                          stat;
+};

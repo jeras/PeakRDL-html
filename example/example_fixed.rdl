@@ -1,0 +1,41 @@
+
+////////////////////////////////////////////////////////////////////////////////
+// Example fixed-point regfile
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+// definition of user-defined type and property
+`include "fixed.rdl"
+
+regfile example_fixed #(
+    longint unsigned REGWIDTH = 32,
+    longint unsigned WIDTH = 24
+){
+    default regwidth = REGWIDTH;
+    default accesswidth = REGWIDTH;
+
+    reg {
+        field {
+        } val [WIDTH];
+    } reg_undefined;
+    reg {
+        field {
+            fixed_property = fixed_datatype'{sign: false, fixedpoint: false, scale: 0};
+        } val [WIDTH];
+    } reg_unsigned;
+    reg {
+        field {
+            fixed_property = fixed_datatype'{sign: true, fixedpoint: false, scale: 0};
+        } val [WIDTH];
+    } reg_signed;
+    reg {
+        field {
+            fixed_property = fixed_datatype'{sign: false, fixedpoint: true, scale: -8};
+        } val [WIDTH];
+    } reg_ufixed;
+    reg {
+        field {
+            fixed_property = fixed_datatype'{sign: true, fixedpoint: true, scale: -8};
+        } val [WIDTH];
+    } reg_sfixed;
+};

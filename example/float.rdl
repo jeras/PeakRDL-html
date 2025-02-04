@@ -1,0 +1,64 @@
+////////////////////////////////////////////////////////////////////////////////
+// IEEE 754 Floating-point standard formats
+// TODO: license
+////////////////////////////////////////////////////////////////////////////////
+
+reg binary16 {
+    name = "half-precision floating-point format";
+    desc = "https://en.wikipedia.org/wiki/Half-precision_floating-point_format";
+    regwidth = 16;
+
+    field {} sign     [15:15];  //  1-bit
+    field {} exponent [14:10];  //  5-bit
+    field {} fraction [ 9: 0];  // 10-bit
+};
+
+reg binary32 {
+    name = "single-precision floating-point format";
+    desc = "https://en.wikipedia.org/wiki/Single-precision_floating-point_format";
+    regwidth = 32;
+
+    field {} sign     [31:31];
+    field {} exponent [30:23];
+    field {} fraction [22: 0];
+};
+
+reg binary64 {
+    name = "double-precision floating-point format";
+    desc = "https://en.wikipedia.org/wiki/Double-precision_floating-point_format";
+    regwidth = 64;
+
+    field {} sign     [63:63];
+    field {} exponent [62:52];
+    field {} fraction [51: 0];
+};
+
+reg binary128 {
+    name = "quadruple-precision floating-point format";
+    desc = "https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format";
+    regwidth = 128;
+
+    field {} sign     [127:127];
+    field {} exponent [126:112];
+    field {} fraction [111:  0];
+};
+
+reg binary256 {
+    name = "octuple-precision floating-point format";
+    desc = "https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format";
+    regwidth = 256;
+
+    field {} sign     [255:255];
+    field {} exponent [254:236];
+    field {} fraction [235:  0];
+};
+
+reg bfloat16 {
+    name = "brain floating point";
+    desc = "https://en.wikipedia.org/wiki/Bfloat16_floating-point_format";
+    regwidth = 16;
+
+    field {} sign     [15:15];
+    field {} exponent [14: 7];
+    field {} fraction [ 6: 0];
+};

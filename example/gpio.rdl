@@ -1,0 +1,67 @@
+////////////////////////////////////////////////////////////////////////////////
+// GPIO controller registers
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+regfile gpio #(
+    longint unsigned REGWIDTH = 32,
+    longint unsigned WIDTH = REGWIDTH
+){
+    default regwidth = REGWIDTH;
+    default accesswidth = REGWIDTH;
+
+    name = "GPIO controller";
+    desc = "GPIO controller with input/output/enable and [pos/neg]edge interrupt support.";
+
+    reg {
+        name = "data input";
+        desc = "Data input register, (depending on IP instance parameters, read values are delayed by a 2-stage synchronizer).";
+        field {
+            sw = r; hw = w;
+        } data [WIDTH];
+    } data_input;
+
+    reg {
+        name = "data output";
+        desc = "Data output register.";
+        field {
+            sw = rw; hw = r;
+        } data [WIDTH] = 0;
+    } data_output;
+
+    reg {
+        name = "data output enable mask";
+        desc = "Data output enable register (active high).";
+        field {
+            sw = rw; hw = r;
+        } data [WIDTH] = 0;
+    } data_enable;
+
+    reg {
+        name = "interrupt posedge enable mask";
+        desc = "Interrupt enable mask for rising edge on corresponding data signal (set bit to `1` to enable).";
+        field {
+            sw = rw; hw = r;
+        } data [WIDTH] = 0;
+    } irq_posedge;
+
+    reg {
+        name = "interrupt negedge enable mask";
+        desc = "Interrupt enable mask for falling edge on corresponding data signal (set bit to `1` to enable).";
+        field {
+            sw = rw; hw = r;
+        } data [WIDTH] = 0;
+    } irq_negedge;
+
+    reg {
+        name = "interrupt status";
+        desc = "Interrupt status register.";
+        field {
+            name = "interrupt status";
+            desc = "Interrupt status bit, set by peripheral on rising/falling event on corresponding signal with enabled mask bit.
+                    Cleared on read from register.";
+            sw = r; hw = w;
+            rclr;
+        } data [WIDTH];
+    } irq_status;
+};

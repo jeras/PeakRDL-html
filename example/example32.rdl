@@ -1,0 +1,67 @@
+////////////////////////////////////////////////////////////////////////////////
+// example memory map for 32-bit system bus
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+// various reusable definitions
+//`include "fixed.rdl"
+`include "float.rdl"
+
+// example regfile-s
+`include "example_fixed.rdl"
+`include "example_simple.rdl"
+
+// peripheral regfile-s
+`include "gpio.rdl"
+`include "uart.rdl"
+`include "generic.rdl"
+
+addrmap example32 #(
+    longint unsigned REGWIDTH = 32
+){
+    name = "example32";
+    desc = "Example for a 32-bit system bus, used for SystemRDL toolset testing.";
+
+    // regwidth specifies the system bus width
+    default regwidth = REGWIDTH;
+    // accesswidth specifies the minimum width for read/write operations
+    default accesswidth = REGWIDTH;
+
+    gpio #(.REGWIDTH (REGWIDTH), .WIDTH ( 8)) gpio8;
+    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (16)) gpio16;
+    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (24)) gpio24;
+    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (32)) gpio32_1d [4];
+    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (32)) gpio32_2d [3][2];
+
+    uart uart0;
+    uart uart1;
+    uart uart2;
+    uart uart3;
+
+    generic generic [2];
+
+    regfile {
+        // floating point registers and arrays
+        binary32 binary32_0d_a;
+        binary32 binary32_0d_b;
+        binary32 binary32_1d[4];
+        binary32 binary32_2d[3][2];
+        binary32 binary32_3d[2][3][5];
+
+        // unrolled generic[4]
+        configuration conf_0;
+        control       ctrl_0;
+        status        stat_0;
+        configuration conf_1;
+        control       ctrl_1;
+        status        stat_1;
+        configuration conf_2;
+        control       ctrl_2;
+        status        stat_2;
+        configuration conf_3;
+        control       ctrl_3;
+        status        stat_3;
+
+        example_fixed #(.REGWIDTH (REGWIDTH), .WIDTH (24)) fixed;
+    } miscelaneous;
+};

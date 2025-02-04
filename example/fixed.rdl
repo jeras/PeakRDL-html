@@ -1,0 +1,17 @@
+////////////////////////////////////////////////////////////////////////////////
+// Fixed point datatype
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+// structure defining the data type
+struct fixed_datatype {
+    boolean          sign;
+    boolean          fixedpoint;
+    longint unsigned scale;
+};
+
+// user defined property
+property fixed_property {
+    type = fixed_datatype;
+    component = field | signal;
+};
