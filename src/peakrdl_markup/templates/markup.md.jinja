@@ -1,7 +1,12 @@
 {% for node in nodes recursive %}
 
+{% if node.type in ["addrmap", "regfile"] %}
 {% if node.type == "addrmap" %}
 {{ '#' * loop.depth }} _Address map:_ {{ node.name }}
+{% endif %}
+{% if node.type == "regfile" %}
+{{ '#' * loop.depth }} _Register file:_ {{ node.name }}
+{% endif %}
 
 - Instance: `{{ node.instance }}`
 - Definition: `{{ node.definition }}`
@@ -13,23 +18,6 @@
 |--------------|------|------------|----------|------|
 {% for row in node.nodes -%}
 | `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.definition }}`| `{{ row.instance }}` | {{ row.name }} |
-{% endfor %}
-
-{{ loop(node.nodes) }}
-
-{% elif node.type == "regfile" %}
-{{ '#' * loop.depth }} _Register file:_ {{ node.name }}
-
-- Instance: `{{ node.instance }}`
-- Definition: `{{ node.definition }}`
-- Base address: `{{ "0x{:08X}".format(node.offset) }}`
-
-{{ node.desc }}
-
-| Base address | type | definition | instance | name |
-|--------------|------|------------|----------|------|
-{% for row in node.nodes -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.definition }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
 {{ loop(node.nodes) }}

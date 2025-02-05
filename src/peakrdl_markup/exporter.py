@@ -243,8 +243,19 @@ class MarkupExporter:
                 continue
             children.append(self.visit_addressable_node(child))
 
+        # organize nodes into an ordered dictionary of definitions
+        # each containing a list of instances
+        definitions = OrderedDict()
+        for child in children:
+            definition = child['definition']
+            if definition in definitions.keys():
+                definitions[definition].append(child)
+            else:
+                definitions[definition] = [child]
+
         # Generate page for this node
         context['nodes'] = children
+        context['definitions'] = definitions
 
         return context
 
