@@ -1,36 +1,52 @@
 {% for node in nodes recursive %}
 
 {% if node.type == "addrmap" %}
-{{ '#' * loop.depth }} Address map: {{ node.name }}
+{{ '#' * loop.depth }} _Address map:_ {{ node.name }}
 
-- Block type: {{ node.type }}
-- Instance name: `{{ node.instance }}`
-- Address offset: `{{ "0x{:08X}".format(node.offset) }}`
+- Instance: `{{ node.instance }}`
+- Definition: `{{ node.definition }}`
+- Base address: `{{ "0x{:08X}".format(node.offset) }}`
 
-| address | type | instance | name |
-|---------|------|----------|------|
+{{ node.desc }}
+
+| Base address | type | definition | instance | name |
+|--------------|------|------------|----------|------|
 {% for row in node.nodes -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.instance }}` | {{ row.name }} |
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.definition }}`| `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
 {{ loop(node.nodes) }}
 
 {% elif node.type == "regfile" %}
-{{ '#' * loop.depth }} Register file: {{ node.name }}
+{{ '#' * loop.depth }} _Register file:_ {{ node.name }}
 
-| address | type | instance | name |
-|---------|------|----------|------|
+- Instance: `{{ node.instance }}`
+- Definition: `{{ node.definition }}`
+- Base address: `{{ "0x{:08X}".format(node.offset) }}`
+
+{{ node.desc }}
+
+| Base address | type | definition | instance | name |
+|--------------|------|------------|----------|------|
 {% for row in node.nodes -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.instance }}` | {{ row.name }} |
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.definition }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
-{% elif node.type == "reg" %}
-{{ '#' * loop.depth }} Register: {{ node.name }}
+{{ loop(node.nodes) }}
 
-| address | type | instance | name |
-|---------|------|----------|------|
-{% for row in node.nodes -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.instance }}` | {{ row.name }} |
+{% elif node.type == "reg" %}
+{{ '#' * loop.depth }} _Register:_ {{ node.name }}
+
+- Instance: `{{ node.instance }}`
+- Definition: `{{ node.definition }}`
+- Address offset: `{{ "0x{:08X}".format(node.offset) }}`
+
+{{ node.desc }}
+
+| range | SW | reset | definition | instance | name |
+|-------|----|-------|------------|----------|------|
+{% for row in node.fields -%}
+| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.definition }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
 {% endif %}

@@ -147,7 +147,7 @@ class MarkupExporter:
                 )
             context = {'nodes': [self.visit_addressable_node(node)]}
 
-        #breakpoint()
+#        breakpoint()
 
 #        view_source_url, view_source_filename= self.get_view_source_info(node)
 #        context = {
@@ -181,13 +181,16 @@ class MarkupExporter:
         stream.dump(output_path)
 
 
-    def visit_addressable_node(self, node: Node) -> OrderedDict:
+    def visit_addressable_node(self, node: Node, referenced: bool = False) -> OrderedDict:
 
         context = {
+            'referenced': referenced,
+            'definition': node.type_name,
             'instance'  : node.inst.inst_name,
-            'name'      : node.get_property('name'),
             'offset'    : node.inst.addr_offset,
             'size'      : node.size,
+            'name'      : node.get_property('name'),
+            'desc'      : node.get_property('desc'),
         }
         if node.inst.is_array:
             context['dims'] = node.inst.array_dimensions
@@ -200,7 +203,7 @@ class MarkupExporter:
             context['type'] = "regfile"
         elif isinstance(node, RegNode):
             context['type'] = "reg"
-            context_fields = []
+            context_fields = list()
             for i, field in enumerate(node.fields(skip_not_present=self.skip_not_present)):
 
                 field_reset = field.get_property("reset", default=0)
@@ -210,11 +213,18 @@ class MarkupExporter:
                     field_reset = 0
 
                 context_field = {
-                    'name' : field.inst.inst_name,
-                    'lsb'  : field.inst.lsb,
-                    'msb'  : field.inst.msb,
-                    'reset': field_reset,
-                    'disp' : 'H'
+                    'definition': field.type_name,
+                    'instance'  : field.inst.inst_name,
+                    'lsb'       : field.inst.lsb,
+                    'msb'       : field.inst.msb,
+                    'reset'     : field_reset,
+                    'disp'      : 'H',
+                    'sw'        : field.get_property('sw').name,
+                    'hw'        : field.get_property('hw').name,
+#                    'onread'    : field.get_property('onread').name,
+#                    'onwrite'   : field.get_property('onwrite').name,
+                    'name'      : field.get_property('name'),
+                    'desc'      : field.get_property('desc'),
                 }
 
                 field_enum = field.get_property("encode")
@@ -257,57 +267,7 @@ class MarkupExporter:
         if desc is None:
             return desc
 
-        # Keep HTML semantically correct by promoting heading tags if desc ends
-        # up as a child of existing headings.
-        if increment_heading > 0:
-            def heading_replace_callback(m: 're.Match') -> str:
-                new_heading = "<%sh%d>" % (
-                    m.group(1),
-                    min(int(m.group(2)) + increment_heading, 6)
-                )
-                return new_heading
-            desc = re.sub(r'<(/?)[hH](\d)>', heading_replace_callback, desc)
-
-        # Transform image references
-        # If an img reference points to a file on the local filesystem, then
-        # copy it to the output and transform the reference
-        if increment_heading > 0:
-            def img_transform_callback(m: 're.Match') -> str:
-                dom = xml.dom.minidom.parseString(m.group(0))
-                img_src = dom.childNodes[0].attributes["src"].value
-
-                if os.path.isabs(img_src):
-                    # Absolute local path, or root URL
-                    pass
-                elif re.match(r'(https?|file)://', img_src):
-                    # Absolute URL
-                    pass
-                else:
-                    # Looks like a relative path
-                    # See if it points to something relative to the source file
-                    path = self.try_resolve_rel_path(node.inst.def_src_ref, img_src)
-                    if path is not None:
-                        img_src = path
-
-                if os.path.exists(img_src):
-                    with open(img_src, 'rb') as f:
-                        md5 = hashlib.md5(f.read()).hexdigest()
-                    new_path = os.path.join(
-                        self.output_dir, "content",
-                        "%s_%s" % (md5[0:8], os.path.basename(img_src))
-                    )
-                    shutil.copyfile(img_src, new_path)
-                    dom.childNodes[0].attributes["src"].value = os.path.join(
-                        "content",
-                        "%s_%s" % (md5[0:8], os.path.basename(img_src))
-                    )
-                    return dom.childNodes[0].toxml()
-
-                return m.group(0)
-
-            desc = re.sub(r'<\s*img.*/>', img_transform_callback, desc)
         return desc
-
 
     def get_enum_html_desc(self, enum_member) -> str: # type: ignore
         s = enum_member.get_html_desc(self.markdown_inst)

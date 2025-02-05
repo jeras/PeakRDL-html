@@ -19,7 +19,7 @@
 addrmap example32 #(
     longint unsigned REGWIDTH = 32
 ){
-    name = "example32";
+    name = "32-bit bus example";
     desc = "Example for a 32-bit system bus, used for SystemRDL toolset testing.";
 
     // regwidth specifies the system bus width
