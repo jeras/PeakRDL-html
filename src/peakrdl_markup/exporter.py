@@ -145,7 +145,8 @@ class MarkupExporter:
                     "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
                     node.inst.property_src_ref.get('bridge', node.inst.inst_src_ref)
                 )
-            context = {'nodes': [self.visit_addressable_node(node)]}
+            context_node = self.visit_addressable_node(node)
+            context = {'nodes': [context_node], 'definitions': [{node.type_name : context_node}]}
 
 #        breakpoint()
 
