@@ -1,17 +1,40 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Fixed point datatype
+// Fixed point and arbitrary sized integer register definitions
 // TODO: add license
 ////////////////////////////////////////////////////////////////////////////////
 
-// structure defining the data type
-struct fixed_datatype {
-    boolean          sign;
-    boolean          fixedpoint;
-    longint unsigned scale;
+reg uint #(
+    longint unsigned WIDTH = 32
+){
+    name = "unsigned integer";
+    desc = "Unsigned integer number with range from `0` to `2**WIDTH-1`.";
+    field {} value [WIDTH-1:0];
 };
 
-// user defined property
-property fixed_property {
-    type = fixed_datatype;
-    component = field | signal;
+reg sint #(
+    longint unsigned WIDTH = 32
+){
+    name = "signed integer";
+    desc = "Signed integer number with range from `-2**(WIDTH-1)` to `2**(WIDTH-1)-1`.";
+    field {} sign  [WIDTH-1];
+    field {} value [WIDTH-2:0];
+};
+
+reg ufixed #(
+    longint unsigned WIDTH = 32,
+    longint unsigned SHIFT = WIDTH
+){
+    name = "unsigned fixed point";
+    desc = "Unsigned fixed point number with range from `0` to `(2**WIDTH-1)/2**SHIFT` in steps of `1/2**SHIFT`.";
+    field {} value [WIDTH-1:0];
+};
+
+reg sint #(
+    longint unsigned WIDTH = 32,
+    longint unsigned SHIFT = WIDTH-1
+){
+    name = "signed fixed point";
+    desc = "Signed fixed point number with range from `-(2**(WIDTH-1))/2**SHIFT` to `(2**(WIDTH-1)-1)/2**SHIFT` in steps of `1/2**SHIFT`.";
+    field {} sign  [WIDTH-1];
+    field {} value [WIDTH-2:0];
 };

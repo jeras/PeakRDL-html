@@ -36,10 +36,8 @@ class MarkupExporter:
             Override the class instance of the Markdown processor.
             See the `Markdown module <https://python-markdown.github.io/reference/#Markdown>`_
             for more details.
-        user_template_dir: str
-            Path to a directory where user-defined template overrides are stored.
-        user_static_dir: str
-            Path to user-defined static content to copy to output directory.
+        user_template: str
+            Path to a user-defined template file.
         user_context: dict
             Additional context variables to load into the template namespace.
         show_signals: bool
@@ -55,14 +53,12 @@ class MarkupExporter:
         self.skip_not_present = True
         self.current_top_node = None # type: AddrmapNode
 
-        self.user_static_dir = kwargs.pop("user_static_dir", None) # type: Optional[str]
         self.show_signals = kwargs.pop("show_signals", False)
         self.user_context = kwargs.pop("user_context", {})
         markdown_inst = kwargs.pop("markdown_inst", None) # type: Optional[markdown.Markdown]
         self.extra_properties = kwargs.pop("extra_doc_properties", []) # type: List[str]
         self.generate_source_links = kwargs.pop("generate_source_links", True)
-        gmtu_translators = kwargs.pop("gitmetheurl_translators", None)
-        user_template_dir = kwargs.pop("user_template_dir", None)
+        user_template = kwargs.pop("user_template", None)
 
         # Check for stray kwargs
         if kwargs:
@@ -97,8 +93,6 @@ class MarkupExporter:
             autoescape=jj.select_autoescape(['html']),
             undefined=jj.StrictUndefined
         )
-
-        self.gmtu = GitMeTheURL(gmtu_translators)
 
 
     def export(self, nodes: 'Union[Node, List[Node]]', output_dir: str, **kwargs: 'Dict[str, Any]') -> None:
@@ -154,7 +148,6 @@ class MarkupExporter:
 #        context = {
 #            'node' : node,
 #            'children' : children,
-#            'has_description' : has_description,
 #            'friendly_access' : friendly_access,
 #            'has_enum_encoding' : has_enum_encoding,
 #            'get_enum_desc': self.get_enum_html_desc,
@@ -316,33 +309,6 @@ class MarkupExporter:
                 return True
         return False
 
-    def get_view_source_info(self, node: Node) -> 'Tuple[Optional[str], Optional[str]]':
-        """
-        Attempt to derive the node definition's source code sharelink using
-        GitMeTheURL.
-
-        Returns None if not found
-        """
-        if not self.generate_source_links:
-            return None, None
-
-        src_ref = node.inst.def_src_ref or node.inst.inst_src_ref
-        if isinstance(src_ref, DetailedFileSourceRef):
-            path = src_ref.path
-            line = src_ref.line
-        elif isinstance(src_ref, FileSourceRef):
-            path = src_ref.path
-            line = None
-        else:
-            return None, None
-
-        # resolve any symlinks to ensure true git path
-        path = os.path.realpath(path)
-
-        try:
-            return (self.gmtu.get_source_url(path, line), os.path.basename(path))
-        except Exception: # pylint: disable=broad-except
-            return None, None
 
     def get_node_uid(self, node: Node) -> str:
         """
@@ -352,12 +318,6 @@ class MarkupExporter:
         path_hash = hashlib.sha1(node_path.encode('utf-8')).hexdigest()
         return path_hash
 
-
-def has_description(node: Node) -> bool:
-    """
-    Test if node has a description defined
-    """
-    return "desc" in node.list_properties()
 
 def friendly_access(obj: 'Any') -> str:
     """
@@ -396,19 +356,3 @@ def reg_fields_are_low_to_high(node: RegNode) -> bool:
         if field.msb < field.lsb:
             return True
     return False
-
-def copy_recursive(src: str, dst: str) -> None:
-    """
-    distutils.dir_util.copy_tree is deprecated, and shutil.copytree does not have
-    the dirs_exist_ok option until py3.8.
-    Implement an equivalent
-    """
-    os.makedirs(dst, exist_ok=True)
-
-    for entry in os.listdir(src):
-        spath = os.path.join(src, entry)
-        dpath = os.path.join(dst, entry)
-        if os.path.isdir(spath):
-            copy_recursive(spath, dpath)
-        else:
-            shutil.copyfile(spath, dpath)
