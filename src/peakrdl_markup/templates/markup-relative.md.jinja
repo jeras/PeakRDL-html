@@ -3,10 +3,10 @@
 {%- if component.class in ["Addrmap", "Regfile"] -%}
 {% if component.class == "Addrmap" -%}
 {{ '#' * loop.depth }} _Address map:_ {{ component.name }}
-{% endif %}
+{%- endif %}
 {% if component.class == "Regfile" -%}
 {{ '#' * loop.depth }} _Register file:_ {{ component.name }}
-{% endif %}
+{%- endif %}
 
 - Instances: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
