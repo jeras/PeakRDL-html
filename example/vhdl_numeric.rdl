@@ -1,0 +1,21 @@
+////////////////////////////////////////////////////////////////////////////////
+// VHDL numeric_std compatible types
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+reg vhdl_unsigned #(
+    longint unsigned WIDTH = 32
+){
+    name = "VHDL unsigned";
+    desc = "VHDL `numeric_std` unsigned integer number with range from `0` to `2**WIDTH-1`.";
+    field {} value [WIDTH-1:0];
+};
+
+reg vhdl_signed #(
+    longint unsigned WIDTH = 32
+){
+    name = "VHDL signed";
+    desc = "VHDL `numeric_std` signed integer number with range from `-2**(WIDTH-1)` to `2**(WIDTH-1)-1`.";
+    field {} sign  [WIDTH-1:WIDTH-1];
+    field {} value [WIDTH-2:0];
+};

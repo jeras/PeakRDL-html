@@ -11,7 +11,7 @@ regfile gpio #(
     default accesswidth = REGWIDTH;
 
     name = "GPIO controller";
-    desc = "GPIO controller with input/output/enable and [pos/neg]edge interrupt support.";
+    desc = "GPIO controller with input/output/enable and [pos/neg] edge interrupt support.";
 
     reg {
         name = "data input";

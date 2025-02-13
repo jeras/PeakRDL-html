@@ -6,15 +6,14 @@ import math
 import shutil
 import hashlib
 import xml.dom.minidom
-from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 import jinja2 as jj
 import markdown
-from gitmetheurl import GitMeTheURL
 
-from systemrdl.node import FieldNode, Node, RootNode, AddressableNode, RegNode
-from systemrdl.node import RegfileNode, AddrmapNode, MemNode, SignalNode
+from systemrdl.node import Node, RootNode, AddressableNode
+from systemrdl.node import AddrmapNode, MemNode, RegfileNode, RegNode, FieldNode, SignalNode
+from systemrdl.component import Addrmap, Mem, Regfile, Reg, Field, Signal
 from systemrdl import rdltypes
 from systemrdl.source_ref import FileSourceRef, DetailedFileSourceRef
 
@@ -24,6 +23,9 @@ from .__about__ import __version__
 if TYPE_CHECKING:
     from typing import Any, Optional, Tuple, List, Dict, Union
     from systemrdl.source_ref import SourceRefBase
+
+# debug
+import pprint
 
 class MarkupExporter:
     def __init__(self, **kwargs: 'Any') -> None:
@@ -50,15 +52,12 @@ class MarkupExporter:
             properties in your documentation.
         """
         self.output_dir = "" # type: str
-        self.skip_not_present = True
-        self.current_top_node = None # type: AddrmapNode
-
-        self.show_signals = kwargs.pop("show_signals", False)
-        self.user_context = kwargs.pop("user_context", {})
-        markdown_inst = kwargs.pop("markdown_inst", None) # type: Optional[markdown.Markdown]
+        self.skip_not_present = kwargs.pop("skip_not_present", True) # type: ignore
+        self.show_signals     = kwargs.pop("show_signals", False)
+        self.user_context     = kwargs.pop("user_context", {})
         self.extra_properties = kwargs.pop("extra_doc_properties", []) # type: List[str]
-        self.generate_source_links = kwargs.pop("generate_source_links", True)
-        user_template = kwargs.pop("user_template", None)
+        markdown_inst         = kwargs.pop("markdown_inst", None) # type: Optional[markdown.Markdown]
+        user_template         = kwargs.pop("user_template", None)
 
         # Check for stray kwargs
         if kwargs:
@@ -80,9 +79,9 @@ class MarkupExporter:
         else:
             self.markdown_inst = markdown_inst
 
-        if user_template_dir:
+        if user_template:
             loader = jj.ChoiceLoader([
-                jj.FileSystemLoader(user_template_dir),
+                jj.FileSystemLoader(user_template),
                 jj.FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates"))
             ]) # type: jj.BaseLoader
         else:
@@ -112,26 +111,17 @@ class MarkupExporter:
             Default is True
         """
 
-        # if not a list
+        # if not a list, create a list with a single element
         if not isinstance(nodes, list):
             nodes = [nodes]
 
-        # If it is the root node, skip to top addrmap
+        # if it is the root node, skip to top addrmap
         for i, node in enumerate(nodes):
             if isinstance(node, RootNode):
                 nodes[i] = node.top
 
-        self.skip_not_present = kwargs.pop("skip_not_present", True) # type: ignore
-
-        # Check for stray kwargs
-        if kwargs:
-            raise TypeError("got an unexpected keyword argument '%s'" % list(kwargs.keys())[0])
-
-        # Make sure output directory structure exists
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
-
         # Traverse trees
+        context = {}
         for node in nodes:
             self.current_top_node = node
             if node.get_property('bridge'):
@@ -139,57 +129,39 @@ class MarkupExporter:
                     "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
                     node.inst.property_src_ref.get('bridge', node.inst.inst_src_ref)
                 )
-            context_node = self.visit_addressable_node(node)
-            context = {'nodes': [context_node], 'definitions': [{node.type_name : context_node}]}
+            context['nodes'] = self.visit_node(node)
+            context['components'] = {node.type_name: self.visit_component(node)}
 
-#        breakpoint()
 
-#        view_source_url, view_source_filename= self.get_view_source_info(node)
-#        context = {
-#            'node' : node,
-#            'children' : children,
-#            'friendly_access' : friendly_access,
-#            'has_enum_encoding' : has_enum_encoding,
-#            'get_enum_desc': self.get_enum_html_desc,
-#            'get_node_desc': self.get_node_html_desc,
-#            'get_child_addr_digits': self.get_child_addr_digits,
-#            'show_signals': self.show_signals,
-#            'has_extra_property_doc': self.has_extra_property_doc,
-#            'extra_properties': self.extra_properties,
-#            'stringify_rdl_value': stringify_rdl_value,
-#            'SignalNode' : SignalNode,
-#            'FieldNode': FieldNode,
-#            'AddressableNode': AddressableNode,
-#            'PropertyReference': rdltypes.PropertyReference,
-#            'reversed': reversed,
-#            'isinstance': isinstance,
-#            'list': list,
-#            'reg_fields_are_low_to_high': reg_fields_are_low_to_high,
-#            'skip_not_present': self.skip_not_present
-#        }
-#        context.update(self.user_context)
+        #breakpoint()
+        pprint.pp(context)
 
-        template = self.jj_env.get_template("markup.md.jinja")
+        # Make sure output directory structure exists
+        self.output_dir = output_dir
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        template = self.jj_env.get_template("markup-relative.md.jinja")
         stream = template.stream(context)
         output_path = os.path.join(self.output_dir, "test.md")
         stream.dump(output_path)
 
 
-    def visit_addressable_node(self, node: Node, referenced: bool = False) -> OrderedDict:
+    def visit_node(self, node: Node) -> dict:
 
         context = {
-            'referenced': referenced,
-            'definition': node.type_name,
-            'instance'  : node.inst.inst_name,
-            'offset'    : node.inst.addr_offset,
-            'size'      : node.size,
-            'name'      : node.get_property('name'),
-            'desc'      : node.get_property('desc'),
+            'class'    : node.inst.__class__.__name__,
+            'type_name': node.type_name,
+            'instance' : node.inst.inst_name,
+            'offset'   : node.inst.addr_offset,
+            'address'  : node.absolute_address,
+            'size'     : node.size,
+            'name'     : node.get_property('name'),
+            'desc'     : node.get_property('desc'),
         }
         if node.inst.is_array:
             context['dims'] = node.inst.array_dimensions
             context['stride'] = node.inst.array_stride
-            context['idxs'] = [0] * len(node.inst.array_dimensions)
+            context['indexes'] = [0] * len(node.inst.array_dimensions)
 
         if   isinstance(node, AddrmapNode):
             context['type'] = "addrmap"
@@ -207,18 +179,16 @@ class MarkupExporter:
                     field_reset = 0
 
                 context_field = {
-                    'definition': field.type_name,
-                    'instance'  : field.inst.inst_name,
-                    'lsb'       : field.inst.lsb,
-                    'msb'       : field.inst.msb,
-                    'reset'     : field_reset,
-                    'disp'      : 'H',
-                    'sw'        : field.get_property('sw').name,
-                    'hw'        : field.get_property('hw').name,
-#                    'onread'    : field.get_property('onread').name,
-#                    'onwrite'   : field.get_property('onwrite').name,
-                    'name'      : field.get_property('name'),
-                    'desc'      : field.get_property('desc'),
+                    'type_name': field.type_name,
+                    'lsb'      : field.inst.lsb,
+                    'msb'      : field.inst.msb,
+                    'reset'    : field_reset,
+                    'sw'       : field.get_property('sw').name,
+                    'hw'       : field.get_property('hw').name,
+#                    'onread'   : field.get_property('onread').name,
+#                    'onwrite'  : field.get_property('onwrite').name,
+                    'name'     : field.get_property('name'),
+                    'desc'     : field.get_property('desc'),
                 }
 
                 field_enum = field.get_property("encode")
@@ -235,21 +205,73 @@ class MarkupExporter:
         for child in node.children(skip_not_present=self.skip_not_present):
             if not isinstance(child, AddressableNode):
                 continue
-            children.append(self.visit_addressable_node(child))
-
-        # organize nodes into an ordered dictionary of definitions
-        # each containing a list of instances
-        definitions = OrderedDict()
-        for child in children:
-            definition = child['definition']
-            if definition in definitions.keys():
-                definitions[definition].append(child)
-            else:
-                definitions[definition] = [child]
+            children.append(self.visit_node(child))
 
         # Generate page for this node
         context['nodes'] = children
-        context['definitions'] = definitions
+
+        return context
+
+    def visit_component(self, node: Node) -> dict:
+
+        context = {}
+
+        context['class']     = node.inst.__class__.__name__
+        context['type_name'] = node.inst.type_name
+        context['instance']  = node.inst.inst_name
+        context['name']      = node.get_property('name')
+        context['desc']      = node.get_property('desc')
+
+        if isinstance(node.inst, (Addrmap, Regfile, Reg)):
+            context['offset']  = node.inst.addr_offset
+            if node.inst.is_array:
+                context['dims']    = node.inst.array_dimensions
+                context['stride']  = node.inst.array_stride
+                context['indexes'] = [0] * len(node.inst.array_dimensions)
+        elif isinstance(node.inst, Field):
+            field_reset = node.get_property("reset", default=0)
+            if isinstance(field_reset, Node):
+                # Reset value is a reference. Dynamic RAL data does not
+                # support this, so stuff a 0 in its place
+                field_reset = 0
+
+            context['lsb']       = node.inst.lsb
+            context['msb']       = node.inst.msb
+            context['reset']     = field_reset
+            context['sw']        = node.get_property('sw').name
+            context['hw']        = node.get_property('hw').name
+##          context['onread']    = node.get_property('onread').name
+##          context['onwrite']   = node.get_property('onwrite').name
+
+            field_enum = node.get_property("encode")
+            if field_enum is not None:
+                context_field['encode'] = True
+                context_field['disp'] = 'E'
+
+        # Recurse to children
+        children = list()
+        for child in node.children(skip_not_present=self.skip_not_present):
+            if not isinstance(child, AddressableNode):
+                continue
+            children.append(self.visit_node(child))
+
+        # Generate page for this node
+        context['nodes'] = children
+
+        # organize nodes into an ordered dictionary of definitions
+        # each containing a list of instances
+        components = {}
+        for child in node.children(skip_not_present=self.skip_not_present):
+            print("==============================")
+            print(child)
+            type_name = child.inst.type_name
+            if type_name in components.keys():
+                components[type_name]['instances'].append(child)
+            else:
+                components[type_name] = self.visit_component(child)
+                components[type_name]['instances'] = [child]
+
+        context['components'] = components
 
         return context
 
@@ -308,15 +330,6 @@ class MarkupExporter:
             if prop in node.list_properties():
                 return True
         return False
-
-
-    def get_node_uid(self, node: Node) -> str:
-        """
-        Returns the node's UID string
-        """
-        node_path = node.get_rel_path(self.current_top_node.parent, array_suffix="", empty_array_suffix="")
-        path_hash = hashlib.sha1(node_path.encode('utf-8')).hexdigest()
-        return path_hash
 
 
 def friendly_access(obj: 'Any') -> str:

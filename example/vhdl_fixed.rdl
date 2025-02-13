@@ -1,0 +1,25 @@
+////////////////////////////////////////////////////////////////////////////////
+// VHDL fixed_pkg compatible types
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+reg vhdl_ufixed #(
+    longint MSB = 32-1,
+    longint LSB = 0,
+    longint WIDTH = MSB+1-LSB 
+){
+    name = "VHDL unsigned fixed point";
+    desc = "VHDL `fixed_pkg` unsigned fixed point number `ufixed(MSB downto LSB)`.";
+    field {} value [WIDTH-1:0];
+};
+
+reg vhdl_sfixed #(
+    longint MSB = 32-1,
+    longint LSB = 0,
+    longint WIDTH = MSB+1-LSB 
+){
+    name = "VHDL signed fixed point";
+    desc = "VHDL `fixed_pkg` signed fixed point number `sfixed(MSB downto LSB)`.";
+    field {} sign  [WIDTH-1:WIDTH-1];
+    field {} value [WIDTH-2:0];
+};

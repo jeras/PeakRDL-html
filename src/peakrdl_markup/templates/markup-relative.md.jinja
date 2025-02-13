@@ -1,41 +1,46 @@
-{% for def in definitions recursive %}
+{% for type_name, component in components.items() recursive -%}
 
-{% if node.type in ["addrmap", "regfile"] %}
-{% if node.type == "addrmap" %}
-{{ '#' * loop.depth }} _Address map:_ {{ node.name }}
+{% if component.class in ["Addrmap", "Regfile"] -%}
+{% if component.class == "Addrmap" -%}
+{{ '#' * loop.depth }} _Address map:_ {{ component.name }}
 {% endif %}
-{% if node.type == "regfile" %}
-{{ '#' * loop.depth }} _Register file:_ {{ node.name }}
+{% if component.class == "Regfile" -%}
+{{ '#' * loop.depth }} _Register file:_ {{ component.name }}
 {% endif %}
 
-- Instance: `{{ node.instance }}`
-- Definition: `{{ node.definition }}`
-- Base address: `{{ "0x{:08X}".format(node.address) }}`
+- Instances: `{{ component.instance }}`
+- Definition: `{{ component.type_name }}`
+- Offset: `{{ "0x{:08X}".format(component.offset) }}`
 
-{{ node.desc }}
+{{ component.desc }}
 
-| Base address | type | definition | instance | name |
-|--------------|------|------------|----------|------|
-{% for row in node.nodes -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.type }}` | `{{ row.definition }}`| `{{ row.instance }}` | {{ row.name }} |
+| Offset | class | type_name | instance | name |
+|--------|-------|------------|----------|------|
+{% for row in component.nodes -%}
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.class }}` | `{{ row.type_name }}`| `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
-{{ loop(def.definitions) }}
+{{ loop(component.components.items()) }}
 
-{% elif node.type == "reg" %}
-{{ '#' * loop.depth }} _Register:_ {{ node.name }}
+{% elif component.class == "Reg" -%}
+{{ '#' * loop.depth }} _Register:_ {{ component.name }}
 
-- Instance: `{{ node.instance }}`
-- Definition: `{{ node.definition }}`
-- Absolute address: `{{ "0x{:08X}".format(node.address) }}`
+- Instance: `{{ component.instance }}`
+- Definition: `{{ component.type_name }}`
+- Absolute address: `{{ "0x{:08X}".format(component.offset) }}`
 
-{{ node.desc }}
+{{ component.desc }}
 
-| range | SW | reset | definition | instance | name |
-|-------|----|-------|------------|----------|------|
-{% for row in node.fields -%}
-| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.definition }}` | `{{ row.instance }}` | {{ row.name }} |
+| range | SW | reset | type_name | instance | name |
+|-------|----|-------|-----------|----------|------|
+{% for row in component.nodes -%}
+| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.type_name }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
+
+{% elif component.class == "Field" -%}
+{{ '#' * loop.depth }} _Field:_ {{ component.name }}
+
+{{ component.desc }}
 
 {% endif %}
 

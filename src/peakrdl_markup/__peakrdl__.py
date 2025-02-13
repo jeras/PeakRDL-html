@@ -15,10 +15,8 @@ class Exporter(ExporterSubcommandPlugin):
     long_desc = "Generate Markup (Markdown, AsciiDoc, reStructuredText) documentation pages."
 
     cfg_schema = {
-        "user_template_dir": schema.DirectoryPath(),
-        "user_static_dir": schema.DirectoryPath(),
+        "user_template": schema.DirectoryPath(),
         "extra_doc_properties": [schema.String()],
-        "generate_source_links": schema.Boolean(),
     }
 
 
@@ -33,16 +31,11 @@ class Exporter(ExporterSubcommandPlugin):
 
 
     def do_export(self, top_node: 'AddrmapNode', options: 'argparse.Namespace') -> None:
-        generate_source_links = self.cfg['generate_source_links']
-        if generate_source_links is None:
-            generate_source_links = True
 
         markup = MarkupExporter(
             show_signals=options.show_signals,
-            user_template_dir=self.cfg['user_template_dir'],
-            user_static_dir=self.cfg['user_static_dir'],
+            user_template=self.cfg['user_template'],
             extra_doc_properties=self.cfg['extra_doc_properties'],
-            generate_source_links=generate_source_links,
         )
         markup.export(
             top_node,
