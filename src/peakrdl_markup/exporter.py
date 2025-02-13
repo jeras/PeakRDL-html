@@ -148,63 +148,45 @@ class MarkupExporter:
 
     def visit_node(self, node: Node) -> dict:
 
-        context = {
-            'class'    : node.inst.__class__.__name__,
-            'type_name': node.type_name,
-            'instance' : node.inst.inst_name,
-            'offset'   : node.inst.addr_offset,
-            'address'  : node.absolute_address,
-            'size'     : node.size,
-            'name'     : node.get_property('name'),
-            'desc'     : node.get_property('desc'),
-        }
-        if node.inst.is_array:
-            context['dims'] = node.inst.array_dimensions
-            context['stride'] = node.inst.array_stride
-            context['indexes'] = [0] * len(node.inst.array_dimensions)
+        context = {}
 
-        if   isinstance(node, AddrmapNode):
-            context['type'] = "addrmap"
-        elif isinstance(node, RegfileNode):
-            context['type'] = "regfile"
-        elif isinstance(node, RegNode):
-            context['type'] = "reg"
-            context_fields = list()
-            for i, field in enumerate(node.fields(skip_not_present=self.skip_not_present)):
+        context['class']     = node.inst.__class__.__name__
+        context['type_name'] = node.inst.type_name
+        context['instance']  = node.inst.inst_name
+        context['name']      = node.get_property('name')
+        context['desc']      = node.get_property('desc')
 
-                field_reset = field.get_property("reset", default=0)
-                if isinstance(field_reset, Node):
-                    # Reset value is a reference. Dynamic RAL data does not
-                    # support this, so stuff a 0 in its place
-                    field_reset = 0
+        if isinstance(node.inst, (Addrmap, Regfile, Reg)):
+            context['offset']  = node.inst.addr_offset
+            context['address'] = node.absolute_address,
+            context['size']    = node.size,
+            if node.inst.is_array:
+                context['dims']    = node.inst.array_dimensions
+                context['stride']  = node.inst.array_stride
+                context['indexes'] = [0] * len(node.inst.array_dimensions)
+        elif isinstance(node.inst, Field):
+            field_reset = node.get_property("reset", default=0)
+            if isinstance(field_reset, Node):
+                # Reset value is a reference. Dynamic RAL data does not
+                # support this, so stuff a 0 in its place
+                field_reset = 0
 
-                context_field = {
-                    'type_name': field.type_name,
-                    'lsb'      : field.inst.lsb,
-                    'msb'      : field.inst.msb,
-                    'reset'    : field_reset,
-                    'sw'       : field.get_property('sw').name,
-                    'hw'       : field.get_property('hw').name,
-#                    'onread'   : field.get_property('onread').name,
-#                    'onwrite'  : field.get_property('onwrite').name,
-                    'name'     : field.get_property('name'),
-                    'desc'     : field.get_property('desc'),
-                }
+            context['lsb']       = node.inst.lsb
+            context['msb']       = node.inst.msb
+            context['reset']     = field_reset
+            context['sw']        = node.get_property('sw').name
+            context['hw']        = node.get_property('hw').name
+##          context['onread']    = node.get_property('onread').name
+##          context['onwrite']   = node.get_property('onwrite').name
 
-                field_enum = field.get_property("encode")
-                if field_enum is not None:
-                    context_field['encode'] = True
-                    context_field['disp'] = 'E'
-
-                context_fields.append(context_field)
-
-            context['fields'] = context_fields
+            field_enum = node.get_property("encode")
+            if field_enum is not None:
+                context_field['encode'] = True
+                context_field['disp'] = 'E'
 
         # Recurse to children
         children = list()
         for child in node.children(skip_not_present=self.skip_not_present):
-            if not isinstance(child, AddressableNode):
-                continue
             children.append(self.visit_node(child))
 
         # Generate page for this node
@@ -251,8 +233,6 @@ class MarkupExporter:
         # Recurse to children
         children = list()
         for child in node.children(skip_not_present=self.skip_not_present):
-            if not isinstance(child, AddressableNode):
-                continue
             children.append(self.visit_node(child))
 
         # Generate page for this node

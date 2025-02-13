@@ -1,6 +1,6 @@
 {% for type_name, component in components.items() recursive -%}
 
-{% if component.class in ["Addrmap", "Regfile"] -%}
+{%- if component.class in ["Addrmap", "Regfile"] -%}
 {% if component.class == "Addrmap" -%}
 {{ '#' * loop.depth }} _Address map:_ {{ component.name }}
 {% endif %}
@@ -15,26 +15,24 @@
 {{ component.desc }}
 
 | Offset | class | type_name | instance | name |
-|--------|-------|------------|----------|------|
+|--------|-------|-----------|----------|------|
 {% for row in component.nodes -%}
 | `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.class }}` | `{{ row.type_name }}`| `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
-
-{{ loop(component.components.items()) }}
 
 {% elif component.class == "Reg" -%}
 {{ '#' * loop.depth }} _Register:_ {{ component.name }}
 
 - Instance: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
-- Absolute address: `{{ "0x{:08X}".format(component.offset) }}`
+- Offset: `{{ "0x{:08X}".format(component.offset) }}`
 
 {{ component.desc }}
 
-| range | SW | reset | type_name | instance | name |
-|-------|----|-------|-----------|----------|------|
+| range | SW | HW | reset | type_name | instance | name |
+|-------|----|----|-------|-----------|----------|------|
 {% for row in component.nodes -%}
-| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.type_name }}` | `{{ row.instance }}` | {{ row.name }} |
+| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ row.hw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.type_name }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
 {% elif component.class == "Field" -%}
@@ -42,6 +40,6 @@
 
 {{ component.desc }}
 
-{% endif %}
-
-{% endfor %}
+{% endif -%}
+{{ loop(component.components.items()) }}
+{% endfor -%}
