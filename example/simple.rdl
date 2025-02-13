@@ -1,0 +1,19 @@
+addrmap simple {
+    regfile miscelaneous {
+
+        reg control {
+            field {} sign [32];
+        };
+        reg status {
+            field {} sign [32];
+        };
+
+        control ctrl_0;
+        status  stat_0;
+        control ctrl_1;
+        status  stat_1;
+    };
+
+    miscelaneous misc_0;
+    miscelaneous misc_1;
+};
