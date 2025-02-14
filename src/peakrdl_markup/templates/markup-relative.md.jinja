@@ -1,12 +1,15 @@
-{% for type_name, component in components.items() recursive -%}
+{% macro heading(class, type_name) -%}
+{% if class == "Addrmap" %}{% set section_class = "Address map:"%}{% endif -%}
+{% if class == "Regfile" %}{% set section_class = "Register file:"%}{% endif -%}
+{% if class == "Reg" %}{% set section_class = "Register:"%}{% endif -%}
+{% if class == "Field" %}{% set section_class = "Register field:"%}{% endif -%}
+{{ section_class }} {{ type_name }}
+{%- endmacro -%}
 
-{%- if component.class in ["Addrmap", "Regfile"] -%}
-{% if component.class == "Addrmap" -%}
-{{ '#' * loop.depth }} _Address map:_ {{ component.name }}
-{%- endif %}
-{% if component.class == "Regfile" -%}
-{{ '#' * loop.depth }} _Register file:_ {{ component.name }}
-{%- endif %}
+{% for type_name, component in components.items() recursive -%}
+{{ '#' * loop.depth }} {{ heading(component.class, component.name) }}
+
+{%- if component.class in ["Addrmap", "Regfile"] %}
 
 - Instances: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
@@ -17,11 +20,11 @@
 | Offset | class | type_name | instance | name |
 |--------|-------|-----------|----------|------|
 {% for row in component.nodes -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.class }}` | `{{ row.type_name }}`| `{{ row.instance }}` | {{ row.name }} |
+{% set link = '#' ~ heading(row.class, row.name)|slug -%}
+| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.class }}` | [`{{ row.type_name }}`]({{ link }}) | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
-{% elif component.class == "Reg" -%}
-{{ '#' * loop.depth }} _Register:_ {{ component.name }}
+{% elif component.class == "Reg" %}
 
 - Instance: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
@@ -35,8 +38,7 @@
 | `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ row.hw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.type_name }}` | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
-{% elif component.class == "Field" -%}
-{{ '#' * loop.depth }} _Field:_ {{ component.name }}
+{% elif component.class == "Field" %}
 
 {{ component.desc }}
 

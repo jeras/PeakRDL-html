@@ -90,7 +90,8 @@ class MarkupExporter:
         self.jj_env = jj.Environment(
             loader=loader,
             autoescape=jj.select_autoescape(['html']),
-            undefined=jj.StrictUndefined
+            undefined=jj.StrictUndefined,
+            extensions=['jinja2_slug.SlugExtension']
         )
 
 
