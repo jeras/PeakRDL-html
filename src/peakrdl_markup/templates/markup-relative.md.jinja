@@ -13,7 +13,7 @@
 
 - Instances: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
-- Offset: `{{ "0x{:08X}".format(component.offset) }}`
+- Offset: `{{ "0x{:0{fill_width}X}".format(component.offset, fill_width = 8) }}`
 
 {{ component.desc }}
 
@@ -21,21 +21,22 @@
 |--------|-------|-----------|----------|------|
 {% for row in component.nodes -%}
 {% set link = '#' ~ heading(row.class, row.name)|slug -%}
-| `{{ "0x{:08X}".format(row.offset) }}` | `{{ row.class }}` | [`{{ row.type_name }}`]({{ link }}) | `{{ row.instance }}` | {{ row.name }} |
+| `{{ "0x{:0{fill_width}X}".format(row.offset, fill_width = 8) }}` | `{{ row.class }}` | [`{{ row.type_name }}`]({{ link }}) | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
 {% elif component.class == "Reg" %}
 
 - Instance: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
-- Offset: `{{ "0x{:08X}".format(component.offset) }}`
+- Offset: `{{ "0x{:0{fill_width}X}".format(component.offset, fill_width = 8) }}`
 
 {{ component.desc }}
 
 | range | SW | HW | reset | type_name | instance | name |
 |-------|----|----|-------|-----------|----------|------|
 {% for row in component.nodes -%}
-| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ row.hw }}` | `{{ "{:x}".format(row.reset) }}` | `{{ row.type_name }}` | `{{ row.instance }}` | {{ row.name }} |
+{% set link = '#' ~ heading(row.class, row.name)|slug -%}
+| `{{ "[{:d}:{:d}]".format(row.msb, row.lsb) }}` | `{{ row.sw }}` | `{{ row.hw }}` | `{{ "0x{:0{fill_width}x}".format(row.reset, fill_width=8) }}` | [`{{ row.type_name }}`]({{ link }}) | `{{ row.instance }}` | {{ row.name }} |
 {% endfor %}
 
 {% elif component.class == "Field" %}
