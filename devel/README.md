@@ -4,7 +4,7 @@ source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install systemrdl-compiler
 python3 -m pip install jinja2
-python3 -m pip install markupsafe
+python3 -m pip install jinja2-slug
 python3 -m pip install markupsafe==2.0.1
 
 # development install of project
