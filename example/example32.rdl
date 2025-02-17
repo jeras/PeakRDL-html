@@ -33,8 +33,8 @@ addrmap example32 #(
 //    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (32)) gpio32_1d [4];
 //    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (32)) gpio32_2d [3][2];
 
-//    uart uart0;
-//    uart uart1;
+    uart uart0;
+    uart uart1;
 //    uart uart2;
 //    uart uart3;
 //

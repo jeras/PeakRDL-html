@@ -91,7 +91,7 @@ class MarkupExporter:
             loader=loader,
             autoescape=jj.select_autoescape(['html']),
             undefined=jj.StrictUndefined,
-            extensions=['jinja2_slug.SlugExtension']
+            extensions=['jinja2_slug.SlugExtension', 'jinja2.ext.do']
         )
 
 
@@ -132,6 +132,7 @@ class MarkupExporter:
                 )
             context['nodes'] = self.visit_node(node)
             context['components'] = {node.type_name: self.visit_component(node)}
+            context['components'][node.type_name]['instances'] = [context['nodes']]
 
 
         #breakpoint()
@@ -243,14 +244,12 @@ class MarkupExporter:
         # each containing a list of instances
         components = {}
         for child in node.children(skip_not_present=self.skip_not_present):
-            print("==============================")
-            print(child)
             type_name = child.inst.type_name
             if type_name in components.keys():
-                components[type_name]['instances'].append(child)
+                components[type_name]['instances'].append(self.visit_node(child))
             else:
                 components[type_name] = self.visit_component(child)
-                components[type_name]['instances'] = [child]
+                components[type_name]['instances'] = [self.visit_node(child)]
 
         context['components'] = components
 

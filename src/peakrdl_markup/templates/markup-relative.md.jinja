@@ -6,8 +6,22 @@
 {{ section_class }} {{ type_name }}
 {%- endmacro -%}
 
+{% set ns = namespace() -%}
+{% set paths = [] -%}
+{% set ns.paths = [] -%}
+
 {% for type_name, component in components.items() recursive -%}
 {{ '#' * loop.depth }} {{ heading(component.class, component.name) }}
+
+{% for instance in component.instances %}
+{{ instance.instance }}
+{% do paths.append(instance.instance) %}
+{% do ns.paths.append(instance.instance) %}
+Paths: {{ paths }}
+Ns.Paths: {{ ns.paths }}
+{% endfor %}
+PATHS: {{ paths }}
+NS.PATHS: {{ ns.paths }}
 
 {%- if component.class in ["Addrmap", "Regfile"] %}
 
