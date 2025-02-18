@@ -6,28 +6,40 @@
 {{ section_class }} {{ type_name }}
 {%- endmacro -%}
 
-{% set ns = namespace() -%}
-{% set paths = [] -%}
-{% set ns.paths = [] -%}
+{% set levels = [] -%}
 
 {% for type_name, component in components.items() recursive -%}
 {{ '#' * loop.depth }} {{ heading(component.class, component.name) }}
 
-{% for instance in component.instances %}
-{{ instance.instance }}
-{% do paths.append(instance.instance) %}
-{% do ns.paths.append(instance.instance) %}
-Paths: {{ paths }}
-Ns.Paths: {{ ns.paths }}
-{% endfor %}
-PATHS: {{ paths }}
-NS.PATHS: {{ ns.paths }}
+{% if component.class in ["Addrmap", "Regfile", "Reg"] -%}
 
-{%- if component.class in ["Addrmap", "Regfile"] %}
+{% do levels.append({}) -%}
+{% set depth0 = loop.depth0 -%}
+{% for instance in component.instances -%}
+{% do levels[depth0].update({instance.instance: instance.offset}) -%}
+{% endfor -%}
+{% set paths = {"": 0} -%}
+{% for level in levels -%}
+{% set tmp = {} -%}
+{% for path in paths -%}
+{% for unit in level -%}
+{% do tmp.update({path + '.' + unit: paths[path] + level[unit]}) -%}
+{% endfor -%}
+{% endfor -%}
+{% do paths.clear() -%}
+{% do paths.update(tmp) -%}
+{% endfor -%}
 
-- Instances: `{{ component.instance }}`
 - Definition: `{{ component.type_name }}`
 - Offset: `{{ "0x{:0{fill_width}X}".format(component.offset, fill_width = 8) }}`
+- Absolute address and full instance path:
+{% for path in paths -%}
+0. `{{ "0x{:0{fill_width}X}".format(paths[path], fill_width = 8) }}` : `{{ path }}`
+{% endfor -%}
+
+{%- endif -%}
+
+{%- if component.class in ["Addrmap", "Regfile"] %}
 
 {{ component.desc }}
 
@@ -39,10 +51,6 @@ NS.PATHS: {{ ns.paths }}
 {% endfor %}
 
 {% elif component.class == "Reg" %}
-
-- Instance: `{{ component.instance }}`
-- Definition: `{{ component.type_name }}`
-- Offset: `{{ "0x{:0{fill_width}X}".format(component.offset, fill_width = 8) }}`
 
 {{ component.desc }}
 
@@ -58,5 +66,11 @@ NS.PATHS: {{ ns.paths }}
 {{ component.desc }}
 
 {% endif -%}
-{{ loop(component.components.items()) }}
-{% endfor -%}
+
+{{- loop(component.components.items()) -}}
+
+{%- if component.class in ["Addrmap", "Regfile", "Reg"] -%}
+{%  do levels.pop() -%}
+{%  endif -%}
+
+{%- endfor -%}

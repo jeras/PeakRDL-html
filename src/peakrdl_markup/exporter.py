@@ -91,7 +91,7 @@ class MarkupExporter:
             loader=loader,
             autoescape=jj.select_autoescape(['html']),
             undefined=jj.StrictUndefined,
-            extensions=['jinja2_slug.SlugExtension', 'jinja2.ext.do']
+            extensions=['jinja2_slug.SlugExtension', 'jinja2.ext.do', 'jinja2.ext.debug']
         )
 
 
@@ -136,13 +136,15 @@ class MarkupExporter:
 
 
         #breakpoint()
-        pprint.pp(context)
+#        pprint.pp(context)
 
         # Make sure output directory structure exists
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
         template = self.jj_env.get_template("markup-relative.md.jinja")
+        template.globals.update(type = type)
+        template.globals.update(print = print)
         stream = template.stream(context)
         output_path = os.path.join(self.output_dir, "test.md")
         stream.dump(output_path)
