@@ -153,97 +153,9 @@ class MarkupExporter:
         stream.dump(output_path)
 
 
-    def visit_node(self, node: Node) -> dict:
-
-        context = {}
-
-        context['class']     = node.inst.__class__.__name__
-        context['type_name'] = node.inst.type_name
-        context['instance']  = node.inst.inst_name
-        context['name']      = node.get_property('name')
-        context['desc']      = node.get_property('desc')
-
-        if isinstance(node.inst, (Addrmap, Regfile, Reg)):
-            context['offset']  = node.inst.addr_offset
-            context['address'] = node.absolute_address,
-            context['size']    = node.size,
-            if node.inst.is_array:
-                context['dims']    = node.inst.array_dimensions
-                context['stride']  = node.inst.array_stride
-                context['indexes'] = [0] * len(node.inst.array_dimensions)
-        elif isinstance(node.inst, Field):
-            field_reset = node.get_property("reset", default=0)
-            if isinstance(field_reset, Node):
-                # Reset value is a reference. Dynamic RAL data does not
-                # support this, so stuff a 0 in its place
-                field_reset = 0
-
-            context['lsb']       = node.inst.lsb
-            context['msb']       = node.inst.msb
-            context['reset']     = field_reset
-            context['sw']        = node.get_property('sw').name
-            context['hw']        = node.get_property('hw').name
-##          context['onread']    = node.get_property('onread').name
-##          context['onwrite']   = node.get_property('onwrite').name
-
-            field_enum = node.get_property("encode")
-            if field_enum is not None:
-                context_field['encode'] = True
-                context_field['disp'] = 'E'
-
-        # Recurse to children
-        children = list()
-        for child in node.children(skip_not_present=self.skip_not_present):
-            children.append(self.visit_node(child))
-
-        # Generate page for this node
-        context['nodes'] = children
-
-        return context
-
     def visit_component(self, node: Node) -> dict:
 
-        context = {}
-
-        context['class']     = node.inst.__class__.__name__
-        context['type_name'] = node.inst.type_name
-        context['instance']  = node.inst.inst_name
-        context['name']      = node.get_property('name')
-        context['desc']      = node.get_property('desc')
-
-        if isinstance(node.inst, (Addrmap, Regfile, Reg)):
-            context['offset']  = node.inst.addr_offset
-            if node.inst.is_array:
-                context['dims']    = node.inst.array_dimensions
-                context['stride']  = node.inst.array_stride
-                context['indexes'] = [0] * len(node.inst.array_dimensions)
-        elif isinstance(node.inst, Field):
-            field_reset = node.get_property("reset", default=0)
-            if isinstance(field_reset, Node):
-                # Reset value is a reference. Dynamic RAL data does not
-                # support this, so stuff a 0 in its place
-                field_reset = 0
-
-            context['lsb']       = node.inst.lsb
-            context['msb']       = node.inst.msb
-            context['reset']     = field_reset
-            context['sw']        = node.get_property('sw').name
-            context['hw']        = node.get_property('hw').name
-##          context['onread']    = node.get_property('onread').name
-##          context['onwrite']   = node.get_property('onwrite').name
-
-            field_enum = node.get_property("encode")
-            if field_enum is not None:
-                context_field['encode'] = True
-                context_field['disp'] = 'E'
-
-        # Recurse to children
-        children = list()
-        for child in node.children(skip_not_present=self.skip_not_present):
-            children.append(self.visit_node(child))
-
-        # Generate page for this node
-        context['nodes'] = children
+        context['nodes'] = node.children(skip_not_present=self.skip_not_present)
 
         # organize nodes into an ordered dictionary of definitions
         # each containing a list of instances
@@ -251,10 +163,9 @@ class MarkupExporter:
         for child in node.children(skip_not_present=self.skip_not_present):
             type_name = child.inst.type_name
             if type_name in components.keys():
-                components[type_name]['instances'].append(self.visit_node(child))
+                components[type_name]['instances'].append(child)
             else:
-                components[type_name] = self.visit_component(child)
-                components[type_name]['instances'] = [self.visit_node(child)]
+                components[type_name]['instances'] = [child]
 
         context['components'] = components
 
@@ -280,14 +191,6 @@ class MarkupExporter:
             return desc
 
         return desc
-
-    def get_enum_html_desc(self, enum_member) -> str: # type: ignore
-        s = enum_member.get_html_desc(self.markdown_inst)
-        if s:
-            return s
-        else:
-            return ""
-
 
     def try_resolve_rel_path(self, src_ref: 'Optional[SourceRefBase]', relpath: str) -> 'Optional[str]':
         """
@@ -340,17 +243,3 @@ def friendly_access(obj: 'Any') -> str:
         rdltypes.OnWriteType.wset   : "Set on write",
     }
     return lut.get(obj, "")
-
-
-def has_enum_encoding(field: FieldNode) -> bool:
-    """
-    Test if field is encoded with an enum
-    """
-    return "encode" in field.list_properties()
-
-
-def reg_fields_are_low_to_high(node: RegNode) -> bool:
-    for field in node.fields():
-        if field.msb < field.lsb:
-            return True
-    return False
