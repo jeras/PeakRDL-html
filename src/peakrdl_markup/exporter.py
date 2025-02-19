@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import jinja2 as jj
 import markdown
+import systemrdl
 
 from systemrdl.node import Node, RootNode, AddressableNode
 from systemrdl.node import AddrmapNode, MemNode, RegfileNode, RegNode, FieldNode, SignalNode
@@ -124,7 +125,6 @@ class MarkupExporter:
         # Traverse trees
         context = {}
         for node in nodes:
-            self.current_top_node = node
             if node.get_property('bridge'):
                 node.env.msg.warning(
                     "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
@@ -134,6 +134,17 @@ class MarkupExporter:
             context['components'] = {node.type_name: self.visit_component(node)}
             context['components'][node.type_name]['instances'] = [context['nodes']]
 
+        print(nodes[0])
+        print(nodes[0].children())
+        for child in nodes[0].children():
+            print(child)
+            if isinstance(child, AddressableNode):
+                print("addressable")
+            else:
+                print("not addressable")
+
+        # TODO: this is not a simple jinja context, just the top node
+        context = {'nodes': nodes}
 
         #breakpoint()
 #        pprint.pp(context)
@@ -142,9 +153,11 @@ class MarkupExporter:
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
-        template = self.jj_env.get_template("markup-relative.md.jinja")
+        template = self.jj_env.get_template("markup-absolute-systemrdl.md.jinja")
         template.globals.update(type = type)
         template.globals.update(print = print)
+        template.globals.update(isinstance = isinstance)
+        template.globals.update(systemrdl = systemrdl)
         stream = template.stream(context)
         output_path = os.path.join(self.output_dir, "test.md")
         stream.dump(output_path)

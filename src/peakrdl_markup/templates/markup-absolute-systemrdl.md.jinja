@@ -1,0 +1,33 @@
+{% for node in nodes recursive -%}
+
+{% if isinstance(node, systemrdl.node.AddressableNode) -%}
+{{ '#' * loop.depth }} {{ node.inst.inst_name }}
+
+- Instance name: `{{ node.inst.inst_name }}`
+- Type name: `{{ node.inst.type_name }}`
+- Base address: `{{ "0x{:08X}".format(node.absolute_address) }}`
+
+{% if isinstance(node, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode)) -%}
+
+| Base address | type | type name | instance | name |
+|--------------|------|-----------|----------|------|
+{% for row in node.children() -%}
+| `{{ "0x{:08X}".format(row.absolute_address) }}` | `{{ row.inst.__class__.__name__ }}` | `{{ row.inst.type_name }}`| `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% endfor %}
+
+{%- elif isinstance(node, systemrdl.node.RegNode) -%}
+
+| range | sw | hw | reset | definition | instance | name |
+|-------|----|----|-------|------------|----------|------|
+{% for row in node.children() -%}
+| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ "0x{:X}".format(row.get_property("reset", default=0)) }}` | `{{ row.inst.type_name }}` | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% endfor %}
+
+{%- endif %}
+
+{{ node.get_property('desc') }}
+
+{{ loop(node.children()) }}
+
+{% endif -%}
+{% endfor -%}
