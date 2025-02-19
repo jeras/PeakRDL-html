@@ -134,18 +134,6 @@ class MarkupExporter:
             context['components'] = {node.type_name: self.visit_component(node)}
             context['components'][node.type_name]['instances'] = [context['nodes']]
 
-        print(nodes[0])
-        print(nodes[0].children())
-        for child in nodes[0].children():
-            print(child)
-            if isinstance(child, AddressableNode):
-                print("addressable")
-            else:
-                print("not addressable")
-
-        # TODO: this is not a simple jinja context, just the top node
-        context = {'nodes': nodes}
-
         #breakpoint()
 #        pprint.pp(context)
 
@@ -158,7 +146,9 @@ class MarkupExporter:
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)
         template.globals.update(systemrdl = systemrdl)
-        stream = template.stream(context)
+        # TODO: this is not a simple jinja context, just the top node
+        stream = template.stream({'nodes': nodes})
+#        stream = template.stream(context)
         output_path = os.path.join(self.output_dir, "test.md")
         stream.dump(output_path)
 
