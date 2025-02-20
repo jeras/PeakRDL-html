@@ -130,9 +130,6 @@ class MarkupExporter:
                     "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
                     node.inst.property_src_ref.get('bridge', node.inst.inst_src_ref)
                 )
-            context['nodes'] = self.visit_node(node)
-            context['components'] = {node.type_name: self.visit_component(node)}
-            context['components'][node.type_name]['instances'] = [context['nodes']]
 
         #breakpoint()
 #        pprint.pp(context)
@@ -141,35 +138,39 @@ class MarkupExporter:
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
-        template = self.jj_env.get_template("markup-absolute-systemrdl.md.jinja")
+#        template = self.jj_env.get_template("markup-absolute-systemrdl.md.jinja")
+        template = self.jj_env.get_template("markup-relative-systemrdl.md.jinja")
         template.globals.update(type = type)
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)
         template.globals.update(systemrdl = systemrdl)
         # TODO: this is not a simple jinja context, just the top node
-        stream = template.stream({'nodes': nodes})
+        components = {node.inst.type_name : self.visit_component([node]) for node in nodes}
+        stream = template.stream({'nodes': nodes, 'components': components})
 #        stream = template.stream(context)
         output_path = os.path.join(self.output_dir, "test.md")
         stream.dump(output_path)
 
 
-    def visit_component(self, node: Node) -> dict:
-
-        context['nodes'] = node.children(skip_not_present=self.skip_not_present)
+    def visit_component(self, nodes: 'List(Node)') -> dict:
+        context = {}
+        context['instances'] = nodes
 
         # organize nodes into an ordered dictionary of definitions
         # each containing a list of instances
         components = {}
-        for child in node.children(skip_not_present=self.skip_not_present):
+        for child in nodes[0].children():
             type_name = child.inst.type_name
             if type_name in components.keys():
-                components[type_name]['instances'].append(child)
+                components[type_name].append(child)
             else:
-                components[type_name]['instances'] = [child]
-
+                components[type_name] = [child]
+        for type_name in components.keys():
+            components[type_name] = self.visit_component(components[type_name])
         context['components'] = components
 
         return context
+
 
     def get_child_addr_digits(self, node: AddressableNode) -> int:
         return math.ceil(math.log2(node.size) / 4)

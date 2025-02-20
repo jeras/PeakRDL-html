@@ -1,0 +1,46 @@
+{% macro heading(class, type_name) -%}
+{% if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
+{% if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
+{% if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
+{% if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
+{{ section_class }}: {{ type_name }}
+{%- endmacro -%}
+
+{% for type_name, component in components.items() recursive -%}
+{% set node = component.instances[0] -%}
+{{ '#' * loop.depth }} {{ heading(node.inst.__class__.__name__, node.get_property('name')) }}
+
+{%- if isinstance(node, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) %}
+
+- Definition: `{{ type_name }}`
+- Offset: `{{ "0x{:0{fill_width}X}".format(node.address_offset, fill_width = 8) }}`
+
+{%- endif -%}
+
+{%- if isinstance(node, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode)) %}
+
+| Offset | class | type name | instance | name |
+|--------|-------|-----------|----------|------|
+{% for row in node.children() -%}
+{% set link = '#' ~ heading(row.inst.__class__.__name__, row.get_property('name'))|slug -%}
+| `{{ "0x{:0{fill_width}X}".format(row.address_offset, fill_width = 8) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.inst.type_name }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% endfor %}
+
+{%- elif isinstance(node, (systemrdl.node.RegNode)) %}
+
+| range | SW | HW | reset | type name | instance | name |
+|-------|----|----|-------|-----------|----------|------|
+{% for row in node.children() -%}
+{% set link = '#' ~ heading(row.inst.__class__.__name__, row.get_property('name'))|slug -%}
+| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ "0x{:0{fill_width}x}".format(row.get_property("reset", default=0), fill_width=8) }}` | [`{{ row.inst.type_name }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% endfor %}
+
+{%- elif isinstance(node, (systemrdl.node.FieldNode)) %}
+
+{%- endif %}
+
+{{ node.get_property('desc') }}
+
+{{ loop(component.components.items()) -}}
+
+{%- endfor -%}
