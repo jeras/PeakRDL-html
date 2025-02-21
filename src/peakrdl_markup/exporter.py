@@ -41,22 +41,9 @@ class MarkupExporter:
             for more details.
         user_template: str
             Path to a user-defined template file.
-        user_context: dict
-            Additional context variables to load into the template namespace.
-        show_signals: bool
-            Show signal components. Default is False
-        extra_doc_properties: List[str]
-            List of properties to explicitly document.
-            Nodes that have a property explicitly set will show its value in a
-            table in the node's description.
-            Use this to bring forward user-defined properties, or other built-in
-            properties in your documentation.
         """
-        self.output_dir = "" # type: str
+        self.output_file      = "" # type: str
         self.skip_not_present = kwargs.pop("skip_not_present", True) # type: ignore
-        self.show_signals     = kwargs.pop("show_signals", False)
-        self.user_context     = kwargs.pop("user_context", {})
-        self.extra_properties = kwargs.pop("extra_doc_properties", []) # type: List[str]
         markdown_inst         = kwargs.pop("markdown_inst", None) # type: Optional[markdown.Markdown]
         user_template         = kwargs.pop("user_template", None)
 
@@ -96,7 +83,7 @@ class MarkupExporter:
         )
 
 
-    def export(self, nodes: 'Union[Node, List[Node]]', output_dir: str, **kwargs: 'Dict[str, Any]') -> None:
+    def export(self, nodes: 'Union[Node, List[Node]]', output_file: str, **kwargs: 'Dict[str, Any]') -> None:
         """
         Perform the export!
 
@@ -106,8 +93,8 @@ class MarkupExporter:
             Top-level node to export.
             Can be the top-level `RootNode` or any internal `AddrmapNode`.
             Can also be a list of `RootNode` and any internal `AddrmapNode`.
-        output_dir: str
-            Exporter output directory.
+        output_file: str
+            Exporter output file name.
         skip_not_present: bool
             (optional) Control whether nodes with ispresent=false are generated.
             Default is True
@@ -134,10 +121,6 @@ class MarkupExporter:
         #breakpoint()
 #        pprint.pp(context)
 
-        # Make sure output directory structure exists
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
-
 #        template = self.jj_env.get_template("markup-absolute-systemrdl.md.jinja")
         template = self.jj_env.get_template("markup-relative-systemrdl.md.jinja")
         template.globals.update(type = type)
@@ -148,8 +131,7 @@ class MarkupExporter:
         components = {node.inst.type_name : self.visit_component([node]) for node in nodes}
         stream = template.stream({'nodes': nodes, 'components': components})
 #        stream = template.stream(context)
-        output_path = os.path.join(self.output_dir, "test.md")
-        stream.dump(output_path)
+        stream.dump(output_file)
 
 
     def visit_component(self, nodes: 'List(Node)') -> dict:
@@ -208,17 +190,6 @@ class MarkupExporter:
             return None
 
         return path
-
-
-    def has_extra_property_doc(self, node: Node) -> bool:
-        """
-        Returns True if node has a property set that is to be explicitly
-        documented.
-        """
-        for prop in self.extra_properties:
-            if prop in node.list_properties():
-                return True
-        return False
 
 
 def friendly_access(obj: 'Any') -> str:
