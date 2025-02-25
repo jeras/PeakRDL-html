@@ -18,7 +18,6 @@ from systemrdl.component import Addrmap, Mem, Regfile, Reg, Field, Signal
 from systemrdl import rdltypes
 from systemrdl.source_ref import FileSourceRef, DetailedFileSourceRef
 
-from .stringify import stringify_rdl_value
 from .__about__ import __version__
 
 if TYPE_CHECKING:
@@ -127,10 +126,8 @@ class MarkupExporter:
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)
         template.globals.update(systemrdl = systemrdl)
-        # TODO: this is not a simple jinja context, just the top node
         components = {node.inst.type_name : self.visit_component([node]) for node in nodes}
         stream = template.stream({'nodes': nodes, 'components': components})
-#        stream = template.stream(context)
         stream.dump(output_file)
 
 
