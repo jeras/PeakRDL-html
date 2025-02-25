@@ -28,15 +28,20 @@ addrmap example32 #(
     default accesswidth = REGWIDTH;
 
     uart uart0;
-    uart uart1;
-    uart uart2;
-    uart uart3;
+//    uart uart1;
+//    uart uart2;
+//    uart uart3;
 
-    gpio #(.REGWIDTH (REGWIDTH), .WIDTH ( 8)) gpio8;
-    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (16)) gpio16;
+//    gpio #(.REGWIDTH (REGWIDTH), .WIDTH ( 8)) gpio8;
+//    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (16)) gpio16;
 //    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (24)) gpio24;
 //    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (32)) gpio32_1d [4];
 //    gpio #(.REGWIDTH (REGWIDTH), .WIDTH (32)) gpio32_2d [3][2];
+
+    configuration conf;
+    control       ctrl;
+    status        stat;
+    vhdl_ufixed #(.MSB (24-1), .LSB (-8)) ufixed;
 
 //    generic generic [2];
 //
@@ -61,7 +66,5 @@ addrmap example32 #(
 //        configuration conf_3;
 //        control       ctrl_3;
 //        status        stat_3;
-//
-//        example_fixed #(.REGWIDTH (REGWIDTH), .WIDTH (24)) fixed;
 //    } miscelaneous;
 };

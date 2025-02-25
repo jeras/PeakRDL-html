@@ -11,7 +11,7 @@ python3 -m pip install markupsafe==2.0.1
 python -m pip install -e ../
 
 # run test
-peakrdl markdown example/example32.rdl -o example/example32.md
+peakrdl markdown example32.rdl -o example32.md
 ```
 
 # Ideas
