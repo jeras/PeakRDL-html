@@ -1,3 +1,4 @@
+{% import 'systemrdl_properties.jinja' as properties -%}
 {% macro heading(class, type_name) -%}
 {% if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
 {% if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
@@ -36,6 +37,9 @@
 {% endfor %}
 
 {%- elif isinstance(node, (systemrdl.node.FieldNode)) %}
+
+Field properties:
+{% if node.get_property('rclr') %}rclr{% endif %}
 
 {%- endif %}
 
