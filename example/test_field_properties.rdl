@@ -1,0 +1,39 @@
+////////////////////////////////////////////////////////////////////////////////
+// TEST field properties
+// TODO: add license
+////////////////////////////////////////////////////////////////////////////////
+
+reg test_field_properties {
+    name = "test field properties";
+    desc = "Test for various field properties.";
+
+    field {
+        sw = rw;
+        hw = r;
+    } test_none;
+
+    field {
+        sw = rw;
+        hw = r;
+        rclr;
+    } test_rclr;
+
+    field {
+        sw = rw;
+        hw = r;
+        rset;
+    } test_rset;
+
+    field {
+        sw = rw;
+        hw = r;
+        woclr;
+    } test_woclr;
+
+    field {
+        sw = rw;
+        hw = r;
+        woset;
+    } test_woset;
+
+};
