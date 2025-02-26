@@ -15,6 +15,26 @@
     }
 %}
 
+{% macro print_properties(node, property_dict, text="") -%}
+    {% set property_list = [] -%}
+    {% for property in property_dict.keys() -%}
+        {% set value = node.get_property(property) -%}
+        {% if value is boolean -%}
+            {% if value is true -%}
+                {% do property_list.append(property) -%}
+            {% endif -%}
+        {% elif isinstance(value, (systemrdl.node.SignalNode, systemrdl.node.FieldNode)) -%}
+            {% do property_list.append('TODO') -%}
+        {% elif value is none -%}
+        {% else -%}
+            {% do property_list.append(property+'='+value.name) -%}
+        {% endif -%}
+    {% endfor -%}
+    {% if property_list %}
+        {{- text }}: `{{ property_list|join(', ') }}`
+    {% endif -%}
+{%- endmacro %}
+
 {%  set dict_onread_values = {
         'rclr' : "All the bits of the field are cleared on read (`field = '0`).",
         'rset' : "All the bits of the field are set on read (`field = '1`).",

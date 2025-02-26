@@ -16,6 +16,9 @@
 `include "uart.rdl"
 `include "generic.rdl"
 
+// tests
+`include "test_field_properties.rdl"
+
 addrmap example32 #(
     longint unsigned REGWIDTH = 32
 ){
@@ -26,6 +29,10 @@ addrmap example32 #(
     default regwidth = REGWIDTH;
     // accesswidth specifies the minimum width for read/write operations
     default accesswidth = REGWIDTH;
+
+    regfile {
+        test_field_properties test_field_properties;
+    } tests;
 
     uart uart0;
 //    uart uart1;
