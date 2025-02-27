@@ -126,67 +126,12 @@ class JinjaExporter:
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)
         template.globals.update(systemrdl = systemrdl)
-        components = {node.inst.type_name : self.visit_component([node]) for node in nodes}
-        stream = template.stream({'nodes': nodes, 'components': components})
+        stream = template.stream({'nodes': nodes})
         stream.dump(output_file)
-
-
-    def visit_component(self, nodes: 'List(Node)') -> dict:
-        context = {}
-        context['instances'] = nodes
-
-        # organize nodes into an ordered dictionary of definitions
-        # each containing a list of instances
-        components = {}
-        for child in nodes[0].children():
-            type_name = child.inst.type_name
-            if type_name in components.keys():
-                components[type_name].append(child)
-            else:
-                components[type_name] = [child]
-        for type_name in components.keys():
-            components[type_name] = self.visit_component(components[type_name])
-        context['components'] = components
-
-        return context
 
 
     def get_child_addr_digits(self, node: AddressableNode) -> int:
         return math.ceil(math.log2(node.size) / 4)
-
-
-    def get_node_html_desc(self, node: Node, increment_heading: int=0) -> 'Optional[str]':
-        """
-        Wrapper function to get HTML description
-        If no description, returns None
-
-        Performs the following transformations on top of the built-in HTML desc
-        output:
-        - Increment any heading tags
-        - Transform img paths that point to local files. Copy referenced image to output
-        """
-
-        desc = node.get_html_desc(self.markdown_inst)
-        if desc is None:
-            return desc
-
-        return desc
-
-    def try_resolve_rel_path(self, src_ref: 'Optional[SourceRefBase]', relpath: str) -> 'Optional[str]':
-        """
-        Test if the source reference's base path + the relpath points to a file
-        If it works, returns the new path.
-        If not, return None
-        """
-
-        if not isinstance(src_ref, FileSourceRef):
-            return None
-
-        path = os.path.join(os.path.dirname(src_ref.path), relpath)
-        if not os.path.exists(path):
-            return None
-
-        return path
 
 
 def friendly_access(obj: 'Any') -> str:

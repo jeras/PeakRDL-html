@@ -1,11 +1,26 @@
 {% import 'systemrdl_properties.jinja' as properties -%}
-{% macro heading(class, type_name) -%}
+{% macro heading(node) -%}
+{% set class = node.inst.__class__.__name__ -%}
 {% if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
 {% if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
 {% if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
 {% if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
-{{ section_class }}: {{ type_name }}
+{{ section_class }}: `{{ node.get_global_type_name(separator='.') }}`
 {% endmacro -%}
+
+{# construct a dictionary of global type names and their instances #}
+
+{% set global_components = {} %}
+{% for node in nodes -%}
+    {% for desc in node.descendants() -%}
+        {% set global_type_name = desc.get_global_type_name(separator='.') -%}
+        {% if global_type_name in global_components -%}
+            {% do global_components[global_type_name]['instances'].append(desc) -%}
+        {% else -%}
+            {% do global_components.update({global_type_name: {'visited': false, 'instances': [desc]}}) -%}
+        {% endif -%}
+    {% endfor -%}
+{% endfor -%}
 
 {%- macro print_properties(node, property_dict) -%}
     {% set property_list = [] -%}
@@ -29,46 +44,52 @@
     {%- endif %}
 {% endmacro -%}
 
-{% for type_name, component in components.items() recursive -%}
-{% set node = component.instances[0] -%}
-{{ '#' * loop.depth }} {{ heading(node.inst.__class__.__name__, node.get_property('name')) }}
+{% for node in nodes -%}
+{% for child in node.children() recursive -%}
+{% set global_type_name = child.get_global_type_name(separator='.') -%}
+{% if global_components[global_type_name]['visited'] is false %}
+{% do global_components[global_type_name].update({'visited': true}) %}
 
-{% if isinstance(node, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
-- Definition: `{{ type_name }}`
-- Offset: `{{ "0x{:0{fill_width}X}".format(node.address_offset, fill_width = 8) }}`
+{{ '#' * loop.depth }} {{ heading(child) }}
+
+{% if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
+- Definition: `{{ global_type_name }}`
+- Offset: `{{ "0x{:0{fill_width}X}".format(child.address_offset, fill_width = 8) }}`
 
 {% endif -%}
 
-{% if isinstance(node, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode)) -%}
+{% if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode)) -%}
 
 | Offset | class | type name | instance | name |
 |--------|-------|-----------|----------|------|
-{% for row in node.children() -%}
-{% set link = '#' ~ heading(row.inst.__class__.__name__, row.get_property('name'))|slug -%}
-| `{{ "0x{:0{fill_width}X}".format(row.address_offset, fill_width = 8) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.inst.type_name }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% for row in child.children() -%}
+{% set link = '#' ~ heading(row)|slug -%}
+| `{{ "0x{:0{fill_width}X}".format(row.address_offset, fill_width = 8) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
-{% elif isinstance(node, (systemrdl.node.RegNode)) -%}
+{% elif isinstance(child, (systemrdl.node.RegNode)) -%}
 
 | range | SW | HW | reset | type name | instance | name |
 |-------|----|----|-------|-----------|----------|------|
-{% for row in node.children() -%}
-{% set link = '#' ~ heading(row.inst.__class__.__name__, row.get_property('name'))|slug -%}
-| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ "0x{:0{fill_width}x}".format(row.get_property("reset", default=0), fill_width=8) }}` | [`{{ row.inst.type_name }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% for row in child.children() -%}
+{% set link = '#' ~ heading(row)|slug -%}
+| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ "0x{:0{fill_width}x}".format(row.get_property("reset", default=0), fill_width=8) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
-{% elif isinstance(node, (systemrdl.node.FieldNode)) -%}
+{% elif isinstance(child, (systemrdl.node.FieldNode)) -%}
 
-{{- print_properties(node, properties.dict_properties['sw_access']) -}}
-{{- print_properties(node, properties.dict_properties['hw_access']) -}}
-{{- print_properties(node, properties.dict_properties['counter']) -}}
-{{- print_properties(node, properties.dict_properties['interrupt']) -}}
-{{- print_properties(node, properties.dict_properties['miscelaneous']) -}}
+{{- print_properties(child, properties.dict_properties['sw_access']) -}}
+{{- print_properties(child, properties.dict_properties['hw_access']) -}}
+{{- print_properties(child, properties.dict_properties['counter']) -}}
+{{- print_properties(child, properties.dict_properties['interrupt']) -}}
+{{- print_properties(child, properties.dict_properties['miscelaneous']) -}}
 
 {% endif %}
 
-{% if node.get_property('desc') %}{{ node.get_property('desc') }}{% endif %}
+{% if child.get_property('desc') %}{{ child.get_property('desc') }}{% endif %}
 
-{{ loop(component.components.items()) -}}
+{{ loop(child.children()) -}}
 
+{% endif %}
+{%- endfor -%}
 {%- endfor -%}

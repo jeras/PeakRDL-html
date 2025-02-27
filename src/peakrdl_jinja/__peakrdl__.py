@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 
 class Exporter(ExporterSubcommandPlugin):
-    short_desc = "Generate jinja documentation"
-    long_desc = "Generate jinja (Markdown, AsciiDoc, reStructuredText) documentation pages."
+    short_desc = "Jinja template based exporter"
+    long_desc = "Generate code/documentation using Jinja templates using SystemRDL-compiler classes."
 
     cfg_schema = {
         "user_template": schema.DirectoryPath(),

@@ -1,4 +1,20 @@
 {% set dict_properties = {
+    'access': {
+        'name': "Field access properties",
+        'properties': {
+            'hw': "Design’s ability to sample/update a field.",
+            'sw': "Programmer’s ability to read/write a field.",
+        },
+        'types': {
+            'r'  : "Read-only access.",
+            'w'  : "Wead-only access.",
+            'rw' : "Read/write access.",
+            'wr' : "Write/read access.",
+            'w1' : "Write once access, all subsequent software writes are then ignored until the field is reset again.",
+            'rw1': "Read/write once access, all subsequent software writes are then ignored until the field is reset again.",
+            'na' : "No read/write access is allowed.",
+        }
+    },
     'sw_access': {
         'name': "Software access properties",
         'properties': {
