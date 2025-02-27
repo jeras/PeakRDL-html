@@ -3,15 +3,16 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install systemrdl-compiler
+python3 -m pip install peakrdl
 python3 -m pip install jinja2
 python3 -m pip install jinja2-slug
 python3 -m pip install markupsafe==2.0.1
 
 # development install of project
-python -m pip install -e ../
+python3 -m pip install -e ../
 
 # run test
-peakrdl markdown example32.rdl -o example32.md
+peakrdl jinja example32.rdl -o example32.md
 ```
 
 # Ideas

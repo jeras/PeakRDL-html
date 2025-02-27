@@ -27,10 +27,10 @@ if TYPE_CHECKING:
 # debug
 import pprint
 
-class MarkupExporter:
+class JinjaExporter:
     def __init__(self, **kwargs: 'Any') -> None:
         """
-        Constructor for the Markup exporter class
+        Constructor for the Jinja template exporter class
 
         Parameters
         ----------
@@ -113,15 +113,15 @@ class MarkupExporter:
         for node in nodes:
             if node.get_property('bridge'):
                 node.env.msg.warning(
-                    "Markup generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
+                    "Jinja generator does not have proper support for bridge addmaps yet. The 'bridge' property will be ignored.",
                     node.inst.property_src_ref.get('bridge', node.inst.inst_src_ref)
                 )
 
         #breakpoint()
 #        pprint.pp(context)
 
-#        template = self.jj_env.get_template("markup-absolute-systemrdl.md.jinja")
-        template = self.jj_env.get_template("markup-relative-systemrdl.md.jinja")
+#        template = self.jj_env.get_template("absolute.md.jinja")
+        template = self.jj_env.get_template("relative.md.jinja")
         template.globals.update(type = type)
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)

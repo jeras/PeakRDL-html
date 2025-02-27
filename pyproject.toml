@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "peakrdl-markup"
+name = "peakrdl-jinja"
 dynamic = ["version"]
 requires-python = ">=3.5"
 dependencies = [
@@ -18,7 +18,7 @@ authors = [
     {name="Alex Mykyta"},
     {name="Iztok Jeras"},
 ]
-description = "Markup (Markdown, AsciiDoc, reStructuredText) documentation generator for SystemRDL-based register models."
+description = "jinja (Markdown, AsciiDoc, reStructuredText) documentation generator for SystemRDL-based register models."
 readme = "README.md"
 license = {file = "LICENSE"}
 keywords = [
@@ -45,12 +45,12 @@ classifiers = [
 ]
 
 [project.urls]
-Source = "https://github.com/SystemRDL/PeakRDL-markup"
-Tracker = "https://github.com/SystemRDL/PeakRDL-markup/issues"
-Changelog = "https://github.com/SystemRDL/PeakRDL-markup/releases"
+Source = "https://github.com/SystemRDL/PeakRDL-jinja"
+Tracker = "https://github.com/SystemRDL/PeakRDL-jinja/issues"
+Changelog = "https://github.com/SystemRDL/PeakRDL-jinja/releases"
 
 [tool.setuptools.dynamic]
-version = {attr = "peakrdl_markup.__about__.__version__"}
+version = {attr = "peakrdl_jinja.__about__.__version__"}
 
 [project.entry-points."peakrdl.exporters"]
-markup = "peakrdl_markup.__peakrdl__:Exporter"
+jinja = "peakrdl_jinja.__peakrdl__:Exporter"

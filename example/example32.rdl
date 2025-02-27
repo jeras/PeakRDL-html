@@ -31,6 +31,8 @@ addrmap example32 #(
     default accesswidth = REGWIDTH;
 
     regfile {
+        name = "test SystemRDL functionality";
+        desc = "tests for various SystemRDL features";
         test_field_properties test_field_properties;
     } tests;
 

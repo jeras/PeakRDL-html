@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from peakrdl.plugins.exporter import ExporterSubcommandPlugin #pylint: disable=import-error
 from peakrdl.config import schema #pylint: disable=import-error
 
-from .exporter import MarkupExporter
+from .exporter import JinjaExporter
 
 if TYPE_CHECKING:
     import argparse
@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 
 class Exporter(ExporterSubcommandPlugin):
-    short_desc = "Generate Markup documentation"
-    long_desc = "Generate Markup (Markdown, AsciiDoc, reStructuredText) documentation pages."
+    short_desc = "Generate jinja documentation"
+    long_desc = "Generate jinja (Markdown, AsciiDoc, reStructuredText) documentation pages."
 
     cfg_schema = {
         "user_template": schema.DirectoryPath(),
@@ -20,10 +20,10 @@ class Exporter(ExporterSubcommandPlugin):
 
     def do_export(self, top_node: 'AddrmapNode', options: 'argparse.Namespace') -> None:
 
-        markup = MarkupExporter(
+        jinja = JinjaExporter(
             user_template=self.cfg['user_template'],
         )
-        markup.export(
+        jinja.export(
             top_node,
             options.output,
         )

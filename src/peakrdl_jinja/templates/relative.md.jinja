@@ -7,6 +7,28 @@
 {{ section_class }}: {{ type_name }}
 {% endmacro -%}
 
+{%- macro print_properties(node, property_dict) -%}
+    {% set property_list = [] -%}
+    {% for property in property_dict.properties.keys() -%}
+        {% set value = node.get_property(property) -%}
+        {% if value is boolean -%}
+            {% if value is true -%}
+                {% do property_list.append(property) -%}
+            {% endif -%}
+        {% elif value is number -%}
+            {% do property_list.append(property+'='+value.__repr__()) -%}
+        {% elif isinstance(value, (systemrdl.node.SignalNode, systemrdl.node.FieldNode)) -%}
+            {% do property_list.append('TODO') -%}
+        {% elif value is none -%}
+        {% else -%}
+            {% do property_list.append(property+'='+value.name) -%}
+        {% endif -%}
+    {% endfor -%}
+    {% if property_list %}
+        {{- property_dict.name }}: `{{ property_list|join(', ') }}`
+    {%- endif %}
+{% endmacro -%}
+
 {% for type_name, component in components.items() recursive -%}
 {% set node = component.instances[0] -%}
 {{ '#' * loop.depth }} {{ heading(node.inst.__class__.__name__, node.get_property('name')) }}
@@ -37,11 +59,15 @@
 
 {% elif isinstance(node, (systemrdl.node.FieldNode)) -%}
 
-{{ properties.print_properties(node, properties.dict_sw_access_properties, "Software access properties") -}}
+{{- print_properties(node, properties.dict_properties['sw_access']) -}}
+{{- print_properties(node, properties.dict_properties['hw_access']) -}}
+{{- print_properties(node, properties.dict_properties['counter']) -}}
+{{- print_properties(node, properties.dict_properties['interrupt']) -}}
+{{- print_properties(node, properties.dict_properties['miscelaneous']) -}}
 
 {% endif %}
 
-{{ node.get_property('desc') }}
+{% if node.get_property('desc') %}{{ node.get_property('desc') }}{% endif %}
 
 {{ loop(component.components.items()) -}}
 
