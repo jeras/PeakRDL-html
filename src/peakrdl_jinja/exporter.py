@@ -132,28 +132,3 @@ class JinjaExporter:
 
     def get_child_addr_digits(self, node: AddressableNode) -> int:
         return math.ceil(math.log2(node.size) / 4)
-
-
-def friendly_access(obj: 'Any') -> str:
-    """
-    Convert access types into a human-friendly string
-    """
-    lut = {
-        rdltypes.AccessType.na      : "Not Accessible",
-        rdltypes.AccessType.rw      : "Readable and Writable",
-        rdltypes.AccessType.r       : "Read-only",
-        rdltypes.AccessType.w       : "Write-only",
-        rdltypes.AccessType.rw1     : "Readable. Writable once.",
-        rdltypes.AccessType.w1      : "Writable once",
-        rdltypes.OnReadType.rclr    : "Clear on read",
-        rdltypes.OnReadType.rset    : "Set on read",
-        rdltypes.OnWriteType.woset  : "Bitwise write 1 to set",
-        rdltypes.OnWriteType.woclr  : "Bitwise write 1 to clear",
-        rdltypes.OnWriteType.wot    : "Bitwise write 1 to toggle",
-        rdltypes.OnWriteType.wzs    : "Bitwise write 0 to set",
-        rdltypes.OnWriteType.wzc    : "Bitwise write 0 to clear",
-        rdltypes.OnWriteType.wzt    : "Bitwise write 0 to toggle",
-        rdltypes.OnWriteType.wclr   : "Clear on write",
-        rdltypes.OnWriteType.wset   : "Set on write",
-    }
-    return lut.get(obj, "")
