@@ -1,4 +1,5 @@
 {% import 'systemrdl_properties.jinja' as properties -%}
+
 {% macro heading(node) -%}
 {% set class = node.inst.__class__.__name__ -%}
 {% if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
@@ -6,6 +7,10 @@
 {% if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
 {% if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
 {{ section_class }}: `{{ node.get_global_type_name(separator='.') }}`
+{% endmacro -%}
+
+{% macro format_literal(value, width) -%}
+{{ "0x{:0{width}X}".format(value, width = 8) -}}
 {% endmacro -%}
 
 {# construct a dictionary of global type names and their instances #}
@@ -54,7 +59,7 @@
 
 {% if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
 - Definition: `{{ global_type_name }}`
-- Offset: `{{ "0x{:0{fill_width}X}".format(child.address_offset, fill_width = 8) }}`
+- Offset: `{{ format_literal(child.address_offset, 32) }}`
 
 {% endif -%}
 
@@ -64,7 +69,7 @@
 |--------|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ "0x{:0{fill_width}X}".format(row.address_offset, fill_width = 8) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ format_literal(row.address_offset, 32) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
 {% elif isinstance(child, (systemrdl.node.RegNode)) -%}
@@ -73,7 +78,7 @@
 |-------|----|----|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ "0x{:0{fill_width}x}".format(row.get_property("reset", default=0), fill_width=8) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ format_literal(row.get_property("reset", default=0), 32) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
 {% elif isinstance(child, (systemrdl.node.FieldNode)) -%}
