@@ -1,9 +1,21 @@
 {% set dict_properties = {
+    'signal': {
+        'name': "Signal properties",
+        'properties': {
+            'signalwidth': "Width of the signal.",
+            'sync'       : "Signal is synchronous to the clock of the component.",
+            'async'      : "Signal is asynchronous to the clock of the component.",
+            'cpuif_reset': "Default signal to use for resetting the software interface logic. If `cpuif_reset` is not defined, this reverts to the default reset signal. This parameter only controls the CPU interface of a generated slave.",
+            'field_reset': "Default signal to use for resetting field implementations. If `field_reset` is not defined, this reverts to the default reset signal.",
+            'activelow'  : "Signal is active low (state of `0` means ON).",
+            'activehigh' : "Signal is active high (state of `1` means ON).",
+        }
+    },
     'access': {
         'name': "Field access properties",
         'properties': {
-            'hw': "Design’s ability to sample/update a field.",
-            'sw': "Programmer’s ability to read/write a field.",
+            'hw': "Design's ability to sample/update a field.",
+            'sw': "Programmer's ability to read/write a field.",
         },
         'types': {
             'r'  : "Read-only access.",
@@ -111,6 +123,64 @@
             'encode'     : "Binds an enumeration to a field.",
             'precedence' : "Controls whether precedence is granted to hardware (hw) or software (sw) when contention occurs.",
             'paritycheck': "Indicates whether this field is to be checked by parity.",
+        }
+    },
+
+    'register': {
+        'name': "Register properties",
+        'properties': {
+            'regwidth'   : "Specifies the bit-width of the register (power of two).",
+            'accesswidth': "Specifies the minimum software access width (power of two) operation that may be performed on the register.",
+            'errextbus'  : "The associated register has error input.",
+            'shared'     : "Defines a register as being shared in different address maps. This is only valid for register components and shall only be applied to shared components.",
+        }
+    },
+
+    'memory': {
+        'name': "Memory properties",
+        'properties': {
+            'mementries': "The number of memory entries.",
+            'memwidth'  : "The memory entry bit width.",
+            'sw'        : "Programmer's ability to read/write a memory.",
+        }
+    },
+
+    'regfile': {
+        'name': "Register file properties",
+        'properties': {
+            'alignment'   : "Specifies alignment of all instantiated components in the associated register file.",
+            'sharedextbus': "Forces all external registers to share a common bus.",
+            'errextbus'   : "For an external regfile, the associated regfile has an error input.",
+        }
+    },
+
+    'addrmap': {
+        'name': "Address map file properties",
+        'properties': {
+            'alignment'   : "Specifies alignment of all instantiated components in the address map.",
+            'sharedextbus': "Forces all external registers to share a common bus.",
+            'errextbus'   : "The associated `addrmap` instance has an error input.",
+            'bigendian'   : "Uses big-endian architecture in the address map.",
+            'littleendian': "Uses little-endian architecture in the address map.",
+            'addressing'  : "Controls how addresses are computed in an address map.",
+            'rsvdset'     : "The read value of all fields not explicitly defined is set to `1` if `rsvdset` is `True`; otherwise, it is set to `0`.",
+            'rsvdsetX'    : "The read value of all fields not explicitly defined is unknown if `rsvdsetX` is `True`.",
+            'msb0'        : "Specifies register bit-fields in an address map are defined as `0:N` versus `N:0`. This property affects all fields in an address map.",
+            'lsb0'        : "Specifies register bit-fields in an address map are defined as `N:0` versus `0:N`. This property affects all fields in an address map. This is the default.",
+        },
+        'types': {
+            'addressingtype': {
+                'compact'  : "Specifies the components are packed tightly together while still being aligned to the `accesswidth` parameter.",
+                'regalign' : "Specifies the components are packed so each component's start address is a multiple of its size (in bytes). Array elements are aligned according to the individual element's size (this results in no gaps between the array elements). This generally results in simpler address decode logic.",
+                'fullalign': "The assigning of addresses is similar regalign, except for arrays. The alignment value for the first element in an array is the size in bytes of the whole array (i.e., the size of an array element multiplied by the number of elements), rounded up to nearest power of two. The second and subsequent elements are aligned according to their individual size (so there are no gaps between the array elements).",
+            }
+        }
+    },
+
+    'biridge': {
+        'name': "Bridge properties",
+        'properties': {
+            'bridge': "Defines the parent address map as being a bridge. This shall only be applied to the root address map which contains the different views of the sub address maps.",
         }
     }
 }
