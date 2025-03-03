@@ -13,20 +13,6 @@
 {{ "0x{:0{width}X}".format(value, width = 8) -}}
 {% endmacro -%}
 
-{# construct a dictionary of global type names and their instances #}
-
-{% set global_components = {} %}
-{% for node in nodes -%}
-{%     for desc in node.descendants() -%}
-{%         set global_type_name = desc.get_global_type_name(separator='.') -%}
-{%         if global_type_name in global_components -%}
-{%             do global_components[global_type_name].append(desc) -%}
-{%         else -%}
-{%             do global_components.update({global_type_name: [desc]}) -%}
-{%         endif -%}
-{%     endfor -%}
-{% endfor -%}
-
 {%- macro print_properties(node, property_dict) -%}
 {%     set property_list = [] -%}
 {%     for property in property_dict.properties.keys() -%}
@@ -49,17 +35,38 @@
 {%-    endif %}
 {% endmacro -%}
 
+{# construct a dictionary of global type names and their instances #}
+{% set global_components = {} %}
+{% for child in nodes recursive -%}
+{%     set global_type_name = child.get_global_type_name(separator='.') -%}
+{%     if global_type_name in global_components -%}
+{%         do global_components[global_type_name].append(child) -%}
+{%     else -%}
+{%         do global_components.update({global_type_name: [child]}) -%}
+{%     endif -%}
+{%     do loop(child.children()) -%}
+{% endfor -%}
+{% do print(global_components) %}
+
 {% for node in nodes -%}
-{%     set node_array = [node] %}
-{%     for child in node.children() recursive -%}
-{%         set global_type_name = child.get_global_type_name(separator='.') -%}
-{%         if child.__eq__(global_components[global_type_name][0]) %}
+PARENT = {{ node.parent }}{% do print("PARENT: ", node.parent) %}
+{% set child = node.parent %}
+{% for child in child.children() recursive -%}
+{%     set global_type_name = child.get_global_type_name(separator='.') -%}
+{%     if child == global_components[global_type_name][0] %}
+
+{% do print("INSIDE: ", global_type_name, child) %}
+INSIDE: {{ global_type_name }}
 
 {{ '#' * loop.depth }} {{ heading(child) }}
 
 {%if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
-- Definition: `{{ global_type_name }}`
-- Offset: `{{ format_literal(child.address_offset, 32) }}`
+- Component definition path: `{{ global_type_name }}`
+- Address offset: `{{ format_literal(child.address_offset, 32) }}`
+- Instances full path and absolute address:
+{% for instance in global_components[global_type_name] -%}
+    0. `{{ instance.get_path() }} @ {{ format_literal(instance.raw_absolute_address) }}`
+{% endfor -%}
 
 {% endif -%}
 
@@ -116,8 +123,9 @@
 
 {% if child.get_property('desc') %}{{ child.get_property('desc') }}{% endif %}
 
-{{ loop(child.children()) -}}
-
-{%          endif %}
-{%-     endfor -%}
+BEFORE: {{ child.children() }}{% do print("BEFORE: ", child.children()) %}
+{%      do loop(child.children()) -%}
+AFTER : {{ child.children() }}{% do print("AFTER: ", child.children()) %}
+{%-     endif -%}
+{%- endfor -%}
 {%- endfor -%}
