@@ -1,41 +1,47 @@
 {% import 'systemrdl_properties.jinja' as properties -%}
 
+{#- macro for creating headings -#}
 {% macro heading(node) -%}
-{% set class = node.inst.__class__.__name__ -%}
-{% if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
-{% if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
-{% if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
-{% if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
-{{ section_class }}: `{{ node.get_global_type_name(separator='.') }}`
+{%     set class = node.inst.__class__.__name__ -%}
+{%     if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
+{%     if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
+{%     if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
+{%     if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
+{{     section_class }}: `{{ node.get_global_type_name(separator='.') }}`
 {% endmacro -%}
 
+{#- macro for formating address and data literals -#}
 {% macro format_literal(value, width) -%}
 {{ "0x{:0{width}X}".format(value, width = 8) -}}
 {% endmacro -%}
 
-{%- macro print_properties(node, property_dict) -%}
+{#- macro for printing a given subset of properties -#}
+{% macro print_properties(node, propertis_for_node) -%}
 {%     set property_list = [] -%}
-{%     for property in property_dict.properties.keys() -%}
-{%         set value = node.get_property(property) -%}
-{%         if value is boolean -%}
-{%             if value is true -%}
-{%                 do property_list.append(property) -%}
+{%     for property_group in propertis_for_node -%}
+{%         for property in properties.dict_properties[property_group].properties -%}
+{% do print(property_group, property) -%}
+{%             set value = node.get_property(property) -%}
+{%             if value is boolean -%}
+{%                 if value is true -%}
+{%                     do property_list.append(property) -%}
+{%                 endif -%}
+{%             elif value is number -%}
+{%                 do property_list.append(property+'='+value.__repr__()) -%}
+{%             elif isinstance(value, (systemrdl.node.SignalNode, systemrdl.node.FieldNode)) -%}
+{%                 do property_list.append('TODO') -%}
+{%             elif value is none -%}
+{%             else -%}
+{%                 do property_list.append(property+'='+value.name) -%}
 {%             endif -%}
-{%         elif value is number -%}
-{%             do property_list.append(property+'='+value.__repr__()) -%}
-{%         elif isinstance(value, (systemrdl.node.SignalNode, systemrdl.node.FieldNode)) -%}
-{%             do property_list.append('TODO') -%}
-{%         elif value is none -%}
-{%         else -%}
-{%             do property_list.append(property+'='+value.name) -%}
+{%         endfor -%}
+{%         if property_list -%}
+- {{ properties.dict_properties[property_group].name }}: `{{ property_list|join(', ') }}`
 {%         endif -%}
 {%     endfor -%}
-{%     if property_list %}
-{{         property_dict.name }}: `{{ property_list|join(', ') }}`
-{%-    endif %}
 {% endmacro -%}
 
-{# construct a dictionary of global type names and their instances #}
+{#- construct a dictionary of global type names and their instances -#}
 {% set global_components = {} %}
 {% for child in nodes recursive -%}
 {%     set global_type_name = child.get_global_type_name(separator='.') -%}
@@ -46,33 +52,27 @@
 {%     endif -%}
 {%     do loop(child.children()) -%}
 {% endfor -%}
-{% do print(global_components) %}
 
-{% for node in nodes -%}
-PARENT = {{ node.parent }}{% do print("PARENT: ", node.parent) %}
-{% set child = node.parent %}
-{% for child in child.children() recursive -%}
+{#- main recursive loop -#}
+{% for child in nodes recursive -%}
 {%     set global_type_name = child.get_global_type_name(separator='.') -%}
 {%     if child == global_components[global_type_name][0] %}
 
-{% do print("INSIDE: ", global_type_name, child) %}
-INSIDE: {{ global_type_name }}
-
 {{ '#' * loop.depth }} {{ heading(child) }}
 
-{%if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
+{% if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
 - Component definition path: `{{ global_type_name }}`
 - Address offset: `{{ format_literal(child.address_offset, 32) }}`
-- Instances full path and absolute address:
-{% for instance in global_components[global_type_name] -%}
-    0. `{{ instance.get_path() }} @ {{ format_literal(instance.raw_absolute_address) }}`
+- Instance absolute address and full path:
+{% for instance in global_components[global_type_name] %}
+    `@ {{ format_literal(instance.raw_absolute_address) }}: {{ instance.get_path() }}`
 {% endfor -%}
 
 {% endif -%}
 
 {% if isinstance(child, (systemrdl.node.AddrmapNode)) -%}
 
-{{- print_properties(child, properties.dict_properties['addrmap']) -}}
+{{ print_properties(child, ['addrmap']) }}
 
 | Offset | class | type name | instance | name |
 |--------|-------|-----------|----------|------|
@@ -83,7 +83,7 @@ INSIDE: {{ global_type_name }}
 
 {% elif isinstance(child, (systemrdl.node.RegfileNode)) -%}
 
-{{- print_properties(child, properties.dict_properties['regfile']) -}}
+{{ print_properties(child, ['regfile']) }}
 
 | Offset | class | type name | instance | name |
 |--------|-------|-----------|----------|------|
@@ -94,11 +94,11 @@ INSIDE: {{ global_type_name }}
 
 {% elif isinstance(child, (systemrdl.node.MemNode)) -%}
 
-{{- print_properties(child, properties.dict_properties['memory']) -}}
+{{ print_properties(child, ['memory']) }}
 
 {% elif isinstance(child, (systemrdl.node.RegNode)) -%}
 
-{{- print_properties(child, properties.dict_properties['register']) -}}
+{{ print_properties(child, ['register']) }}
 
 | range | SW | HW | reset | type name | instance | name |
 |-------|----|----|-------|-----------|----------|------|
@@ -109,23 +109,16 @@ INSIDE: {{ global_type_name }}
 
 {% elif isinstance(child, (systemrdl.node.FieldNode)) -%}
 
-{{- print_properties(child, properties.dict_properties['sw_access']) -}}
-{{- print_properties(child, properties.dict_properties['hw_access']) -}}
-{{- print_properties(child, properties.dict_properties['counter']) -}}
-{{- print_properties(child, properties.dict_properties['interrupt']) -}}
-{{- print_properties(child, properties.dict_properties['miscelaneous']) -}}
+{{ print_properties(child, ['sw_access', 'hw_access', 'counter', 'interrupt', 'miscelaneous']) }}
 
 {% elif isinstance(child, (systemrdl.node.SignalNode)) -%}
 
-{{- print_properties(child, properties.dict_properties['signal']) -}}
+{{ print_properties(child, ['signal']) }}
 
 {% endif %}
 
 {% if child.get_property('desc') %}{{ child.get_property('desc') }}{% endif %}
 
-BEFORE: {{ child.children() }}{% do print("BEFORE: ", child.children()) %}
-{%      do loop(child.children()) -%}
-AFTER : {{ child.children() }}{% do print("AFTER: ", child.children()) %}
+{{ loop(child.children()) -}}
 {%-     endif -%}
-{%- endfor -%}
 {%- endfor -%}
