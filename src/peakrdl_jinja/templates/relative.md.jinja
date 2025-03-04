@@ -17,10 +17,9 @@
 
 {#- macro for printing a given subset of properties -#}
 {% macro print_properties(node, propertis_for_node) -%}
-{%     set property_list = [] -%}
 {%     for property_group in propertis_for_node -%}
+{%         set property_list = [] -%}
 {%         for property in properties.dict_properties[property_group].properties -%}
-{% do print(property_group, property) -%}
 {%             set value = node.get_property(property) -%}
 {%             if value is boolean -%}
 {%                 if value is true -%}
