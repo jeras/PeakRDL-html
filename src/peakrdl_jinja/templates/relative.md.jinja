@@ -7,13 +7,18 @@
 {%     if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
 {%     if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
 {%     if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
-{{     section_class }}: `{{ node.get_global_type_name(separator='.') }}`
-{% endmacro -%}
+{{ section_class }}: `{{ node.get_global_type_name(separator='.') }}`
+{%- endmacro -%}
 
-{#- macro for formating address and data literals -#}
+{#- macro for formatting address and data literals -#}
 {% macro format_literal(value, width) -%}
-{{ "0x{:0{width}X}".format(value, width = 8) -}}
-{% endmacro -%}
+{{ "0x{:0{width}X}".format(value, width = 8) }}
+{%- endmacro -%}
+
+{#- macro for formatting field ranges -#}
+{% macro format_range(field) -%}
+{{ "[{:d}:{:d}]".format(field.inst.msb, field.inst.lsb) }}
+{%- endmacro -%}
 
 {#- macro for printing a given subset of properties -#}
 {% macro print_properties(node, propertis_for_node) -%}
@@ -57,8 +62,12 @@
 {%     set global_type_name = child.get_global_type_name(separator='.') -%}
 {%     if child == global_components[global_type_name][0] %}
 
+{#- heading for each node -#}
 {{ '#' * loop.depth }} {{ heading(child) }}
 
+{% if child.get_property('name') -%}
+- Name: {{ child.get_property('name') }}
+{% endif -%}
 {% if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
 - Component definition path: `{{ global_type_name }}`
 - Address offset: `{{ format_literal(child.address_offset, 32) }}`
@@ -95,6 +104,8 @@
 
 {{ print_properties(child, ['memory']) }}
 
+TODO: print memory specific details.
+
 {% elif isinstance(child, (systemrdl.node.RegNode)) -%}
 
 {{ print_properties(child, ['register']) }}
@@ -103,8 +114,8 @@
 |-------|----|----|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ "[{:d}:{:d}]".format(row.inst.msb, row.inst.lsb) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ format_literal(row.get_property("reset", default=0), 32) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
-{% endfor %}
+| `{{ format_range(row) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ format_literal(row.get_property("reset", default=0), 32) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+{% endfor -%}
 
 {% elif isinstance(child, (systemrdl.node.FieldNode)) -%}
 
@@ -116,7 +127,9 @@
 
 {% endif %}
 
-{% if child.get_property('desc') %}{{ child.get_property('desc') }}{% endif %}
+{% if child.get_property('desc') -%}
+{{ child.get_property('desc') }}
+{% endif -%}
 
 {{ loop(child.children()) -}}
 {%-     endif -%}
