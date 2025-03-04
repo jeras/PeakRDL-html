@@ -27,6 +27,14 @@ if TYPE_CHECKING:
 # debug
 import pprint
 
+
+def clog2(value: int) -> int:
+    return (value-1).bit_length()
+
+def cdiv(value: int, div: int) -> int:
+    return value // div + (1 if (value % div) else 0)
+
+
 class JinjaExporter:
     def __init__(self, **kwargs: 'Any') -> None:
         """
@@ -122,13 +130,14 @@ class JinjaExporter:
 
 #        template = self.jj_env.get_template("absolute.md.jinja")
         template = self.jj_env.get_template("relative.md.jinja")
+        template.globals.update(clog2 = clog2)
+        template.globals.update(cdiv = cdiv)
         template.globals.update(type = type)
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)
         template.globals.update(systemrdl = systemrdl)
         stream = template.stream({'nodes': nodes})
         stream.dump(output_file)
-
 
     def get_child_addr_digits(self, node: AddressableNode) -> int:
         return math.ceil(math.log2(node.size) / 4)

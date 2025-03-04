@@ -32,7 +32,7 @@ addrmap example32 #(
 
     regfile {
         name = "test SystemRDL functionality";
-        desc = "tests for various SystemRDL features";
+        desc = "Tests for various SystemRDL features.";
         test_field_properties test_field_properties;
     } tests;
 

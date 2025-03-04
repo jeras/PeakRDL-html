@@ -10,9 +10,12 @@
 {{ section_class }}: `{{ node.get_global_type_name(separator='.') }}`
 {%- endmacro -%}
 
+{#- global address width used for absolute addresses -#}
+{% set global_addr_width = 32 -%}
+
 {#- macro for formatting address and data literals -#}
-{% macro format_literal(value, width) -%}
-{{ "0x{:0{width}X}".format(value, width = 8) }}
+{% macro format_literal(value, width=32) -%}
+{{ "0x{:0{width}X}".format(value, width = cdiv(width, 4)) }}
 {%- endmacro -%}
 
 {#- macro for formatting field ranges -#}
@@ -40,7 +43,7 @@
 {%             endif -%}
 {%         endfor -%}
 {%         if property_list -%}
-- {{ properties.dict_properties[property_group].name }}: `{{ property_list|join(', ') }}`
+- **{{ properties.dict_properties[property_group].name }}:** `{{ property_list|join(', ') }}`
 {%         endif -%}
 {%     endfor -%}
 {% endmacro -%}
@@ -66,62 +69,67 @@
 {{ '#' * loop.depth }} {{ heading(child) }}
 
 {% if child.get_property('name') -%}
-- Name: {{ child.get_property('name') }}
+- **Name:** {{ child.get_property('name') }}
 {% endif -%}
-{% if isinstance(child, (systemrdl.node.AddrmapNode, systemrdl.node.RegfileNode, systemrdl.node.RegNode)) -%}
-- Component definition path: `{{ global_type_name }}`
-- Address offset: `{{ format_literal(child.address_offset, 32) }}`
-- Instance absolute address and full path:
+{% if isinstance(child, systemrdl.node.AddressableNode) -%}
+{% set offset_width = clog2(child.size) -%}
+- **Component definition path:** `{{ global_type_name }}`
+{# TODO: parent address width? -#}
+- **Address offset:** `{{ format_literal(child.address_offset, global_addr_width) }}`
+- **Instance absolute address and full path:**
+{# print full list of instances of the given global type name -#}
 {% for instance in global_components[global_type_name] %}
-    `@ {{ format_literal(instance.raw_absolute_address) }}: {{ instance.get_path() }}`
+    `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`
 {% endfor -%}
 
 {% endif -%}
 
-{% if isinstance(child, (systemrdl.node.AddrmapNode)) -%}
-
+{% if isinstance(child, systemrdl.node.AddrmapNode) -%}
 {{ print_properties(child, ['addrmap']) }}
 
 | Offset | class | type name | instance | name |
 |--------|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ format_literal(row.address_offset, 32) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ format_literal(row.address_offset, offset_width) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
-{% elif isinstance(child, (systemrdl.node.RegfileNode)) -%}
-
+{% elif isinstance(child, systemrdl.node.RegfileNode) -%}
 {{ print_properties(child, ['regfile']) }}
 
 | Offset | class | type name | instance | name |
 |--------|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ format_literal(row.address_offset, 32) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ format_literal(row.address_offset, offset_width) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
-{% elif isinstance(child, (systemrdl.node.MemNode)) -%}
-
+{% elif isinstance(child, systemrdl.node.MemNode) -%}
 {{ print_properties(child, ['memory']) }}
 
 TODO: print memory specific details.
 
-{% elif isinstance(child, (systemrdl.node.RegNode)) -%}
-
+{% elif isinstance(child, systemrdl.node.RegNode) -%}
 {{ print_properties(child, ['register']) }}
+{% set register_reset = 0 -%}
+{% for field in child.fields() -%}
+{% do register_reset.__add__(field.get_property("reset", default=0) * 2**field.inst.low) -%}
+{% endfor %} 
+- **Reset value:** `{{ format_literal(register_reset, child.get_property('regwidth')) }}`
 
 | range | SW | HW | reset | type name | instance | name |
 |-------|----|----|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ format_range(row) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ format_literal(row.get_property("reset", default=0), 32) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ format_range(row) }}` | `{{ row.get_property('sw').name }}` | `{{ row.get_property('hw').name }}` | `{{ format_literal(row.get_property("reset", default=0), row.width) }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor -%}
 
-{% elif isinstance(child, (systemrdl.node.FieldNode)) -%}
+{% elif isinstance(child, systemrdl.node.FieldNode) -%}
 
 {{ print_properties(child, ['sw_access', 'hw_access', 'counter', 'interrupt', 'miscelaneous']) }}
+- **Reset value:** `{{ format_literal(child.get_property("reset", default=0), child.width) }}`
 
-{% elif isinstance(child, (systemrdl.node.SignalNode)) -%}
+{% elif isinstance(child, systemrdl.node.SignalNode) -%}
 
 {{ print_properties(child, ['signal']) }}
 
@@ -129,7 +137,7 @@ TODO: print memory specific details.
 
 {% if child.get_property('desc') -%}
 {{ child.get_property('desc') }}
-{% endif -%}
+{% endif %}
 
 {{ loop(child.children()) -}}
 {%-     endif -%}
