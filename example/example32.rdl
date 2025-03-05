@@ -30,6 +30,18 @@ addrmap example32 #(
     // accesswidth specifies the minimum width for read/write operations
     default accesswidth = REGWIDTH;
 
+    reg array_unit #(
+        longint unsigned WIDTH = 32
+    ){
+        name = "data array unit";
+        desc = "Simple array of registers used for testing exporters (code generators).";
+        field {
+            sw = rw; hw = r;
+        } data [WIDTH-1:0] = 0;
+    };
+
+    array_unit array_data[8];
+
     regfile {
         name = "test SystemRDL functionality";
         desc = "Tests for various SystemRDL features.";
