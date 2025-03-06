@@ -65,6 +65,11 @@
 {% set predecessors = [] -%}
 {% for child in nodes recursive -%}
 {%     set global_type_name = child.get_global_type_name(separator='.') -%}
+```Python
+{{ global_type_name }}
+{{ global_components[global_type_name] }}
+{{ child }}
+```
 {%     if child == global_components[global_type_name][0] -%}
 {%         do predecessors.append(child) -%}
 
@@ -73,17 +78,22 @@
 
 {% if child.get_property('name') -%}
 - **Name:** {{ child.get_property('name') }}
+- **Component definition path:** `{{ global_type_name }}`
 {% endif -%}
 {% if isinstance(child, systemrdl.node.AddressableNode) -%}
-{% set offset_width = clog2(child.size) -%}
-- **Component definition path:** `{{ global_type_name }}`
+{% set offset_width = clog2(child.total_size) -%}
+{# array specific code -#}
+{% if child.is_array -%}
+- **Array dimension sizes:** `{% for size in child.array_dimensions %}[{{ size }}]{% endfor %}`
+- **Array stride:** `{{ format_literal(child.array_stride, offset_width) }}`
+{% endif -%}
 {# TODO: parent address width? -#}
 - **Address offset:** `{{ format_literal(child.raw_address_offset, global_addr_width) }}`
 - **Instance absolute address and full path:**
 {# print full list of instances of the given global type name -#}
 {% for instance in global_components[global_type_name] %}
-{#    `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`#}
-{% endfor -%}
+    `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`
+{% endfor %}
 
 {% endif -%}
 
