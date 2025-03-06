@@ -60,10 +60,13 @@
 {%     do loop(child.children()) -%}
 {% endfor -%}
 
+{#- ################### -#}
 {#- main recursive loop -#}
+{% set predecessors = [] -%}
 {% for child in nodes recursive -%}
 {%     set global_type_name = child.get_global_type_name(separator='.') -%}
-{%     if child == global_components[global_type_name][0] %}
+{%     if child == global_components[global_type_name][0] -%}
+{%         do predecessors.append(child) -%}
 
 {#- heading for each node -#}
 {{ '#' * loop.depth }} {{ heading(child) }}
@@ -75,11 +78,11 @@
 {% set offset_width = clog2(child.size) -%}
 - **Component definition path:** `{{ global_type_name }}`
 {# TODO: parent address width? -#}
-- **Address offset:** `{{ format_literal(child.address_offset, global_addr_width) }}`
+- **Address offset:** `{{ format_literal(child.raw_address_offset, global_addr_width) }}`
 - **Instance absolute address and full path:**
 {# print full list of instances of the given global type name -#}
 {% for instance in global_components[global_type_name] %}
-    `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`
+{#    `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`#}
 {% endfor -%}
 
 {% endif -%}
@@ -91,7 +94,7 @@
 |--------|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ format_literal(row.address_offset, offset_width) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ format_literal(row.raw_address_offset, offset_width) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
 {% elif isinstance(child, systemrdl.node.RegfileNode) -%}
@@ -101,7 +104,7 @@
 |--------|-------|-----------|----------|------|
 {% for row in child.children() -%}
 {% set link = '#' ~ heading(row)|slug -%}
-| `{{ format_literal(row.address_offset, offset_width) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
+| `{{ format_literal(row.raw_address_offset, offset_width) }}` | `{{ row.inst.__class__.__name__ }}` | [`{{ row.get_global_type_name(separator='.') }}`]({{ link }}) | `{{ row.inst.inst_name }}` | {{ row.get_property('name') }} |
 {% endfor %}
 
 {% elif isinstance(child, systemrdl.node.MemNode) -%}
@@ -140,5 +143,6 @@ TODO: print memory specific details.
 {% endif %}
 
 {{ loop(child.children()) -}}
+{%          do predecessors.pop() -%}
 {%-     endif -%}
 {%- endfor -%}
