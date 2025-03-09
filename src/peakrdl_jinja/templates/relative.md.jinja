@@ -65,11 +65,6 @@
 {% set predecessors = [] -%}
 {% for child in nodes recursive -%}
 {%     set global_type_name = child.get_global_type_name(separator='.') -%}
-```Python
-{{ global_type_name }}
-{{ global_components[global_type_name] }}
-{{ child }}
-```
 {%     if child == global_components[global_type_name][0] -%}
 {%         do predecessors.append(child) -%}
 
@@ -94,6 +89,38 @@
 {% for instance in global_components[global_type_name] %}
     `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`
 {% endfor %}
+{% for instance in global_components[global_type_name] -%}
+{%     set ns = namespace(index=0) %}
+{%     set path = [] -%}
+{%     set addr = [] -%}
+{%     for ancestor in ancestors(child)[1:] -%}
+{%         set segment = ancestor.get_path_segment(empty_array_suffix = '') -%}
+{%         set address = format_literal(instance.raw_address_offset, global_addr_width) -%}
+{%         if ancestor.is_array -%}
+{%             set path_indexing = [] -%}
+{%             set addr_indexing = [] -%}
+{%             set array_dimensions = ancestor.array_dimensions -%}
+{%             set factors = [format_literal(instance.array_stride, global_addr_width)] + array_dimensions[-1:-array_dimensions.__len__():-1] -%}
+{%             for factor in factors -%}
+{%                 do path_indexing.append('[i{}]'.format(loop.index0+ns.index)) -%}
+{%                 do addr_indexing.append('{}*(i{}'.format(factor, loop.revindex0+ns.index)) -%}
+{%             endfor -%}
+{%             set ns.index = ns.index + array_dimensions.__len__() -%}
+FACTORS: {{ factors }}
+{{ array_dimensions, array_dimensions.__len__() }}
+{{ ns.index }}
+{{ path_indexing }}
+{{ addr_indexing }}
+{%             do path.append(segment+''.join(path_indexing)) -%}
+{%             do addr.append(address+'+'+format_literal(instance.array_stride, global_addr_width)+''.join(addr_indexing)+')'*array_dimensions.__len__()) -%}
+{%         else -%}
+{%             do path.append(segment) -%}
+{%             do addr.append(format_literal(instance.raw_address_offset, global_addr_width)) -%}
+{%         endif -%}
+{%     endfor -%}
+    {{ path|join('.') }}
+    {{ addr|join('+') }}
+{% endfor -%}
 
 {% endif -%}
 
