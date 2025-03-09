@@ -136,8 +136,13 @@ class JinjaExporter:
         template.globals.update(print = print)
         template.globals.update(isinstance = isinstance)
         template.globals.update(systemrdl = systemrdl)
+        template.globals.update(ancestors = self.ancestors)
         stream = template.stream({'nodes': nodes})
         stream.dump(output_file)
 
-    def get_child_addr_digits(self, node: AddressableNode) -> int:
-        return math.ceil(math.log2(node.size) / 4)
+    def ancestors(self, node: Node) -> list[Node]:
+        ancestors = [node]
+        while ancestors[-1].parent:
+            ancestors.append(ancestors[-1].parent)
+        ancestors.reverse()
+        return ancestors
