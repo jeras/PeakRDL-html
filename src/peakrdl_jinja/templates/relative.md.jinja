@@ -103,7 +103,7 @@
 {%             set path_indexing = [] -%}
 {%             set addr_indexing = [] -%}
 {%             set array_dimensions = ancestor.array_dimensions -%}
-{%             set factors = [format_literal(ancestor.array_stride, global_addr_width)] + array_dimensions[-1:-array_dimensions.__len__():-1] -%}
+{%             set factors = [format_literal(ancestor.array_stride, global_addr_width)] + array_dimensions[-1:1:-1] -%}
 {%             for factor in factors -%}
 {%                 do path_indexing.append('[i{}]'.format(loop.index0+ns.index)) -%}
 {%                 do addr_indexing.append('{}*(i{}'.format(factor, loop.revindex0+ns.index)) -%}
