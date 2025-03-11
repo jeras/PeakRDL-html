@@ -19,6 +19,28 @@
 // tests
 `include "test_field_properties.rdl"
 
+regfile test_array_regfile {
+    reg test_array_reg {
+        name = "data array unit";
+        desc = "Simple array of registers used for testing exporters (code generators).";
+        field {
+            sw = rw; hw = r;
+        } data [32-1:0] = 0;
+    } array_reg [2][3];
+};
+
+regfile test_field_signal {
+    name = "test SystemRDL functionality";
+    desc = "Tests for various SystemRDL features.";
+
+    test_field_properties test_field_properties;
+
+    signal rst {
+        sync;
+        activehigh;
+    };
+};
+
 addrmap example32 #(
     longint unsigned REGWIDTH = 32
 ){
@@ -30,21 +52,8 @@ addrmap example32 #(
     // accesswidth specifies the minimum width for read/write operations
     default accesswidth = REGWIDTH;
 
-    regfile {
-        reg {
-            name = "data array unit";
-            desc = "Simple array of registers used for testing exporters (code generators).";
-            field {
-                sw = rw; hw = r;
-            } data [32-1:0] = 0;
-        } array_reg [2][3];
-    } array_regfile [2];
-
-    regfile {
-        name = "test SystemRDL functionality";
-        desc = "Tests for various SystemRDL features.";
-        test_field_properties test_field_properties;
-    } tests;
+    test_array_regfile test_array_regfile [2];
+    test_field_signal  test_field_signal;
 
     uart uart0;
     uart uart1;

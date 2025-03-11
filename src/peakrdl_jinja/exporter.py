@@ -129,7 +129,8 @@ class JinjaExporter:
 #        pprint.pp(context)
 
 #        template = self.jj_env.get_template("absolute.md.jinja")
-        template = self.jj_env.get_template("relative.md.jinja")
+#        template = self.jj_env.get_template("relative.md.jinja")
+        template = self.jj_env.get_template("relative.adoc.jinja")
         template.globals.update(clog2 = clog2)
         template.globals.update(cdiv = cdiv)
         template.globals.update(type = type)

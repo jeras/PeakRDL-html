@@ -1,0 +1,210 @@
+{% import 'systemrdl_properties.jinja' as properties -%}
+
+{#- macro for creating headings -#}
+{% macro heading(node) -%}
+{%     set class = node.inst.__class__.__name__ -%}
+{%     if class == "Addrmap" %}{% set section_class = "Address map"   %}{% endif -%}
+{%     if class == "Regfile" %}{% set section_class = "Register file" %}{% endif -%}
+{%     if class == "Reg"     %}{% set section_class = "Register"      %}{% endif -%}
+{%     if class == "Field"   %}{% set section_class = "Register field"%}{% endif -%}
+{{ section_class }}: `{{ node.get_global_type_name(separator='.') }}`
+{%- endmacro -%}
+
+{#- global address width used for absolute addresses -#}
+{% set global_addr_width = 32 -%}
+
+{#- macro for formatting address and data literals -#}
+{% macro format_literal(value, width=32) -%}
+{{ "0x{:0{width}X}".format(value, width = cdiv(width, 4)) }}
+{%- endmacro -%}
+
+{#- macro for formatting field ranges -#}
+{% macro format_range(field) -%}
+{{ "[{:d}:{:d}]".format(field.inst.msb, field.inst.lsb) }}
+{%- endmacro -%}
+
+{#- macro for printing a given subset of properties -#}
+{% macro print_properties(node, propertis_for_node) -%}
+{%     for property_group in propertis_for_node -%}
+{%         set property_list = [] -%}
+{%         for property in properties.dict_properties[property_group].properties -%}
+{%             set value = node.get_property(property) -%}
+{%             if value is boolean -%}
+{%                 if value is true -%}
+{%                     do property_list.append(property) -%}
+{%                 endif -%}
+{%             elif value is number -%}
+{%                 do property_list.append(property+'='+value.__repr__()) -%}
+{%             elif isinstance(value, (systemrdl.node.SignalNode, systemrdl.node.FieldNode)) -%}
+{%                 do property_list.append('TODO') -%}
+{%             elif value is none -%}
+{%             else -%}
+{%                 do property_list.append(property+'='+value.name) -%}
+{%             endif -%}
+{%         endfor -%}
+{%         if property_list -%}
+- **{{ properties.dict_properties[property_group].name }}:** `{{ property_list|join(', ') }}`
+{%         endif -%}
+{%     endfor -%}
+{% endmacro -%}
+
+{#- construct a dictionary of global type names and their instances -#}
+{% set global_components = {} %}
+{% for child in nodes recursive -%}
+{%     set global_type_name = child.get_global_type_name(separator='.') -%}
+{%     if global_type_name in global_components -%}
+{%         do global_components[global_type_name].append(child) -%}
+{%     else -%}
+{%         do global_components.update({global_type_name: [child]}) -%}
+{%     endif -%}
+{%     do loop(child.children()) -%}
+{% endfor -%}
+
+{#- ################### -#}
+{#- main recursive loop -#}
+{% set predecessors = [] -%}
+{% for child in nodes recursive -%}
+{%     set global_type_name = child.get_global_type_name(separator='.') -%}
+{%     if child == global_components[global_type_name][0] -%}
+{%         do predecessors.append(child) -%}
+
+{#- heading for each node -#}
+{{ '=' * loop.depth }} {{ heading(child) }}
+
+{% if child.get_property('name') -%}
+- **Name:** {{ child.get_property('name') }}
+- **Component definition path:** `{{ global_type_name }}`
+{% endif -%}
+{% if isinstance(child, systemrdl.node.AddressableNode) -%}
+{% set offset_width = clog2(child.total_size) -%}
+{# array specific code -#}
+{% if child.is_array -%}
+- **Array dimension sizes:** `{% for size in child.array_dimensions %}[{{ size }}]{% endfor %}`
+- **Array stride:** `{{ format_literal(child.array_stride, offset_width) }}`
+{% endif -%}
+{# TODO: parent address width? -#}
+- **Address offset:** `{{ format_literal(child.raw_address_offset, global_addr_width) }}`
+- **Instance absolute address and full path:**
+{# print full list of instances of the given global type name -#}
+{# TODO: remove after the code with array support is done -#}
+{% for instance in global_components[global_type_name] %}
+    `@ {{ format_literal(instance.raw_absolute_address, global_addr_width) }}: {{ instance.get_path() }}`
+{% endfor %}
+{# print full list of instances of the given global type name, print formula for address -#}
+{# TODO: remove zero addresses, and combine constants -#}
+{% for instance in global_components[global_type_name] -%}
+{%     set ns = namespace(index=0) -%}
+{%     set path = [] -%}
+{%     set addr = [] -%}
+{%     for ancestor in ancestors(instance)[1:] -%}
+{%         do path.append(ancestor.get_path_segment(empty_array_suffix = '')) -%}
+{%         do addr.append(format_literal(ancestor.raw_address_offset, global_addr_width)) -%}
+{%         if ancestor.is_array -%}
+{%             set path_indexing = [] -%}
+{%             set addr_indexing = [] -%}
+{%             set array_dimensions = ancestor.array_dimensions -%}
+{%             set factors = [format_literal(ancestor.array_stride, global_addr_width)] + array_dimensions[-1:1:-1] -%}
+{%             for factor in factors -%}
+{%                 do path_indexing.append('[i{}]'.format(loop.index0+ns.index)) -%}
+{%                 do addr_indexing.append('{}*(i{}'.format(factor, loop.revindex0+ns.index)) -%}
+{%             endfor -%}
+{%             do path.append(''.join(path_indexing)) -%}
+{%             do addr.append('+'.join(addr_indexing)+')'*array_dimensions.__len__()) -%}
+{%             set ns.index = ns.index + array_dimensions.__len__() -%}
+{%         endif -%}
+{%     endfor %}
+    `{{ path|join('.') }}`\
+    `@ {{ addr|join('+') }}`
+{% endfor -%}
+
+{% endif -%}
+
+{% if isinstance(child, systemrdl.node.AddrmapNode) -%}
+{{ print_properties(child, ['addrmap']) }}
+
+.Children
+[options=autowidth,header,stripes=hover]
+|===
+| offset | class | type name | instance | name
+{% for row in child.children() -%}
+| `{{ format_literal(row.raw_address_offset, offset_width) }}`
+| `{{ row.inst.__class__.__name__ }}`
+| <<{{ heading(row) }},`{{ row.get_global_type_name(separator='.') }}`>>
+| `{{ row.inst.inst_name }}`
+| {{ row.get_property('name') }}
+{% endfor -%}
+|===
+
+{% elif isinstance(child, systemrdl.node.RegfileNode) -%}
+{{ print_properties(child, ['regfile']) }}
+
+.Children
+[options=autowidth,header,stripes=hover]
+|===
+| offset | class | type name | instance | name
+{% for row in child.children() -%}
+| `{{ format_literal(row.raw_address_offset, offset_width) }}`
+| `{{ row.inst.__class__.__name__ }}`
+| <<{{ heading(row) }},`{{ row.get_global_type_name(separator='.') }}`>>
+| `{{ row.inst.inst_name }}`
+| {{ row.get_property('name') }}
+{% endfor -%}
+|===
+
+{% elif isinstance(child, systemrdl.node.MemNode) -%}
+{{ print_properties(child, ['memory']) }}
+
+TODO: print memory specific details.
+
+{% elif isinstance(child, systemrdl.node.RegNode) -%}
+{{ print_properties(child, ['register']) }}
+{% set register_reset = 0 -%}
+{% for field in child.fields() -%}
+{% do register_reset.__add__(field.get_property("reset", default=0) * 2**field.inst.low) -%}
+{% endfor %} 
+- **Reset value:** `{{ format_literal(register_reset, child.get_property('regwidth')) }}`
+
+.Children
+[options=autowidth,header,stripes=hover]
+|===
+| range | SW | HW | reset | type name | instance | name
+{% for row in child.children() -%}
+| `{{ format_range(row) }}`
+| `{{ row.get_property('sw').name }}`
+| `{{ row.get_property('hw').name }}`
+| `{{ format_literal(row.get_property("reset", default=0), row.width) }}`
+| <<{{ heading(row) }},`{{ row.get_global_type_name(separator='.') }}`>>
+| `{{ row.inst.inst_name }}`
+| {{ row.get_property('name') }}
+{% endfor -%}
+|===
+
+{% elif isinstance(child, systemrdl.node.FieldNode) -%}
+
+{{ print_properties(child, ['sw_access', 'hw_access', 'counter', 'interrupt', 'miscelaneous']) }}
+- **Reset value:** `{{ format_literal(child.get_property("reset", default=0), child.width) }}`
+
+{% elif isinstance(child, systemrdl.node.SignalNode) -%}
+
+{{ print_properties(child, ['signal']) }}
+
+{% endif %}
+
+.Signals
+[options=autowidth,header,stripes=hover]
+|===
+| signal | name
+{% for row in child.signals() -%}
+| `{{ row.inst.inst_name }}`
+| {{ row.get_property('name') }}
+{% endfor -%}
+|===
+
+{% if child.get_property('desc') -%}
+{{ child.get_property('desc') }}
+{% endif %}
+
+{{ loop(child.children()) -}}
+{%          do predecessors.pop() -%}
+{%-     endif -%}
+{%- endfor -%}
